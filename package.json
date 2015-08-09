@@ -1,0 +1,25 @@
+{
+  "name": "datacomb",
+  "version": "0.0.1",
+  "description": "An interactive tool for exploring large, tabular datasets.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cmpolis/datacomb"
+  },
+  "keywords": [
+    "data",
+    "d3",
+    "visualization",
+    "datavis"
+  ],
+  "author": "Chris Polis, @ChrisPolis",
+  "license": "All Rights Reserved.",
+  "bugs": {
+    "url": "https://github.com/cmpolis/datacomb/issues"
+  },
+  "homepage": "https://github.com/cmpolis/datacomb"
+}

@@ -1,0 +1,14 @@
+
+# npm stuff
+node_modules/
+npm-debug.log
+
+# built files ( run build command...)
+build/
+
+# sass cache
+*.sass-cache*
+
+# VIM is awesome
+*.swo
+*.swp
