@@ -1,11 +1,32 @@
 ## DataComb
 An interactive tool for exploring large, tabular datasets.
 
-### Status
+### Status, project todo, notes
 
-Not ready for anything... for now!
-
-
+* v1/prototype:
+  * :x: project setup: can build, test, view in browser... 
+  * :x: table row reuse *(minimize # of <.row> DOM elements)*
+  * :x: table layout and properly sized bars
+  * :x: filtering
+  * :x: sorting
+  * :x: scatter plots - canvas or svg?
+  * :x: histograms
+  * :x: summary statistics
+  * :x: grouping (by discrete dimensions)
+  * :x: coloring (by discrete dimensions)
+* v2
+  * :x: expandable(full screen?) scatter plots
+  * :x: regressions in scatter plots
+  * :x: dynamic column addition, removal
+  * :x: custom column widths
+  * :x: functional column definitions from ui: eg: `areaCol: ${height} * ${width}`
+  * :x: axis labels
+  * :x: log scaling
+  * :x: quantize columns (continuous dim -> discrete dim)
+  * :x: illustrate filter response on histograms
+  * :x: illustrate filter response on scatter plots
+  * :x: close/expand groupings in table
+  
 ### Demo
 
 ### Usage
@@ -19,22 +40,12 @@ $ open localhost:5050
 ```
 
 
-### Contributing
-
-Yes, please...
-
-```shell
-npm install
-npm run build # (browserify, scss....)
-```
-
-
 ### Testing
 
 
 ### Resources
 
-Blog post: http://www.bytemuse.com/post/data-comb-visualization/
+Blog post, demo of prototype/old version: http://www.bytemuse.com/post/data-comb-visualization/
 
 R Package(CRAN!): https://github.com/mtennekes/tabplot
 
