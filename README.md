@@ -1,6 +1,9 @@
 ## DataComb
 An interactive tool for exploring large, tabular datasets.
 
+*Turn `JSON` or `CSV` into:*
+![datacomb preview](https://raw.githubusercontent.com/cmpolis/datacomb/master/poc-demo.gif)
+
 ### Status, project todo, notes
 
 * **[IN PROGRESS]** v1/prototype:
