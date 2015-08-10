@@ -7,7 +7,7 @@ An interactive tool for exploring large, tabular datasets.
 ### Status, project todo, notes
 
 * **[IN PROGRESS]** v1/prototype:
-  * :x: project setup: can build, test, view in browser... 
+  * :thumbsup: project setup: can build, test, view in browser... 
   * :x: table row reuse *(minimize # of <.row> DOM elements)*
   * :x: table layout and properly sized bars
   * :x: filtering
@@ -30,6 +30,8 @@ An interactive tool for exploring large, tabular datasets.
   * :x: illustrate filter response on scatter plots
   * :x: close/expand groupings in table
 * :x: HTMLWidget/R package
+* :x: Serializable table configuration format. JSON?
+* :x: Natural language/DSL mode for table configuration, querying
 
 ### Demo
 
