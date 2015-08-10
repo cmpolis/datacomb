@@ -55,6 +55,10 @@ R Package(CRAN!): https://github.com/mtennekes/tabplot
 
 Table Lens Paper: https://www.cs.ubc.ca/~tmm/courses/cpsc533c-04-fall/readings/tablelens.pdf
 
+Demo dataset sources:
+
+* diamonds: https://vincentarelbundock.github.io/Rdatasets/datasets.html
+* nba players: http://www.basketball-reference.com/
 
 
 *Copyright (c) Chris Polis, 2015. All Rights Reserved.*
