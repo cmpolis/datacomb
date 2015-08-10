@@ -4,7 +4,8 @@
   "description": "An interactive tool for exploring large, tabular datasets.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test/*-test.js",
+    "serve": "./node_modules/serve/bin/serve -p 5050"
   },
   "repository": {
     "type": "git",
@@ -21,5 +22,13 @@
   "bugs": {
     "url": "https://github.com/cmpolis/datacomb/issues"
   },
-  "homepage": "https://github.com/cmpolis/datacomb"
+  "homepage": "https://github.com/cmpolis/datacomb",
+  "dependencies": {
+    "chai": "^3.2.0",
+    "mocha": "^2.2.5",
+    "serve": "^1.4.0",
+    "sinon": "^1.15.4",
+    "sinon-chai": "^2.8.0",
+    "stringify": "^3.1.0"
+  }
 }
