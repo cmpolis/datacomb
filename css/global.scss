@@ -1,0 +1,28 @@
+//
+//
+// Global styling to be included on every page
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Inconsolata', sans-serif;
+  font-size: 13px;
+  color: #333;
+  margin-top: 32px;
+}
+
+// Default element styles
+ul {
+  list-style: none;
+}
+li { }
+button {
+  border: 1px solid #333;
+  border-radius: 4px;
+  &:hover {
+    background: #CCC;
+  }
+}
