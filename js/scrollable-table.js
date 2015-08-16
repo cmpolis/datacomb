@@ -27,28 +27,44 @@ var _  = require('lodash'),
 //
 var defaults = {
   heightFn: function() { return 10; },
-  availableNods: 100,
+  availableNodes: 100,
+  visibleHeight: 400
 };
 
 //
 var ScrollableTable = function(opts) {
-  _extend(this, defaults, opts);
+  _.extend(this, defaults, opts);
   if(!this.el) { throw new Error("Need to pass `el` into ScrollableTable."); }
   if(!this.data) { throw new Error("Need to pass `data` into ScrollableTable."); }
+  if(!this.buildRow) { throw new Error("Need to pass `buildRow` into ScrollableTable."); }
   if(!this.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
 
   //
-  this.heightFn = this.heightFn || defaultHeightFn;
-  this.elSel = d3.select(el);
+  this.elSel = d3.select(this.el);
+  this.reset();
 };
 
 //
 //
 
-// Reset ior init dom elements and scrolling state
+// Reset or init dom elements and scrolling state
 ScrollableTable.prototype.reset = function() {
   this.yPosition = 0;
   this.setHeight();
+
+  // clear nodes and rebuild using `buildRow`
+  while (this.el.firstChild) { this.el.remove(this.el.firstChild); }
+  var nodesToBuild = Math.min(this.availableNodes, this.data.length),
+      currentRowY = 0;
+  for(var ndx = 0; ndx < nodesToBuild; ndx++) {
+    var newRow = this.buildRow(this.data[ndx]);
+    newRow.style.top = currentRowY + 'px';
+    currentRowY += this.heightFn(this.data[ndx]);
+    this.el.appendChild(newRow);
+  }
+
+  // setup scroll handling
+  this.elSel.on('scroll', function(evt) { console.log('scrolled', this); });
 };
 
 //
@@ -60,7 +76,12 @@ ScrollableTable.prototype.calculateHeight = function(heightFn) {
   return this.totalHeight;
 };
 ScrollableTable.prototype.setHeight = function(heightFn) {
-  this.elSel.style('height', this.calculateHeight());
+  this.calculateHeight();
+  this.elSel.style({
+    height: this.visibleHeight+'px',
+    overflow: 'scroll',
+    position: 'relative'
+  });
 };
 
 

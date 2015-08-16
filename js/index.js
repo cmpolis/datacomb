@@ -5,5 +5,6 @@
 //
 module.exports = {
   colors: require('./colors'),
-  datacomb: require('./datacomb')
+  datacomb: require('./datacomb'),
+  ScrollableTable: require('./scrollable-table')
 };
