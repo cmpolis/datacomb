@@ -91,7 +91,7 @@ ScrollableTable.prototype.reset = function() {
 ScrollableTable.prototype.updateVisibleRows = function(evt) {
   if(this.isUpdating) { return; }
   this.isUpdating = true;
-  var start = performance.now();
+  // var start = performance.now();
   var screenTop = this.el.scrollTop,
       screenBottom = this.el.scrollTop + this.el.clientHeight,
       screenMidpoint = (screenTop + screenBottom) / 2,
@@ -115,39 +115,8 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
     }
   }
   this.isUpdating = false;
-  var timeElapsed = performance.now() - start;
-  console.log(timeElapsed + ' ms');
-
-  ///////////////////
-  // FIRST PASS...
-  // var visibleTop = this.el.scrollTop,
-  //     visibleBot = this.el.scrollTop + this.el.clientHeight,
-  //     visibleMid = this.el.scrollTop + (this.el.clientHeight / 2),
-  //     midNdx = _.sortedIndex(this.data, { __top: visibleMid }, '__top'),
-
-  //     // Visible scroll area is nearer to top of dataset
-  //     nearerToTop = midNdx < (this.data.length / 2),
-  //     freeNodeSearchNdx = nearerToTop ? this.data.length-1 : 0;
-
-  // console.log('updating...', nearerToTop, freeNodeSearchNdx, midNdx);
-
-  // Find rows in data that are nearest to the midpoint, but do not have existing nodes
-  //  then find rows in data furthest from the midpoint with existing nodes...
-  // for(var ndx = 0; ndx < this.data.length; ndx++) {
-  //     if(nearerToTop) {
-  //       while(!this.data[freeNodeSearchNdx].__node && freeNodeSearchNdx) { freeNodeSearchNdx--; }
-  //     } else {
-  //       while(!this.data[freeNodeSearchNdx].__node && freeNodeSearchNdx > this.data.length) { freeNodeSearchNdx++; }
-  //     }
-  //   if(!this.data[ndx].__node &&
-  //    (Math.abs(midNdx - ndx) < Math.abs(midNdx - freeNodeSearchNdx))) {
-  //     console.log('switching rows', freeNodeSearchNdx, ndx);
-  //     this.data[ndx].__node = this.data[freeNodeSearchNdx].__node;
-  //     this.updateRow(this.data[ndx], this.data[ndx].__node);
-  //     this.data[ndx].__node.style.top = this.data[ndx].__top + 'px';
-  //     this.data[freeNodeSearchNdx].__node = null;
-  //   }
-  // }
+  // var timeElapsed = performance.now() - start;
+  // console.log(timeElapsed + ' ms');
 };
 
 //
