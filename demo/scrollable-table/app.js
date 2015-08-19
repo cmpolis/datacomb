@@ -18,7 +18,7 @@ var table = window.table = new Datacomb.ScrollableTable({
 
   //
   heightFn: function() { return 20; },
-  availableNodes: 1000,
+  availableNodes: 200,
 
   //
   buildRow: function(rowData) {

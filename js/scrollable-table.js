@@ -20,6 +20,8 @@
 //  buildRow: called when first building table rows (return node)
 //  updateRow: called when switching row data into a dom node
 
+"use strict";
+
 //
 var _  = require('lodash');
 
@@ -59,7 +61,7 @@ ScrollableTable.prototype.reset = function() {
   // create new nodes and position absolutely
   this.rowsWithNodes = [];
   var nodesToBuild = Math.min(this.availableNodes, this.data.length);
-  for(var ndx = 0; ndx < nodesToBuild; ndx++) {
+  for(ndx = 0; ndx < nodesToBuild; ndx++) {
     var newRow = this.buildRow(this.data[ndx]);
     newRow.style.top = this.data[ndx].__top + 'px';
     this.el.appendChild(newRow);
@@ -85,6 +87,7 @@ ScrollableTable.prototype.reset = function() {
 ScrollableTable.prototype.updateVisibleRows = function(evt) {
   if(this.isUpdating) { return; }
   this.isUpdating = true;
+
   // var start = performance.now();
   var screenTop = this.el.scrollTop,
       screenBottom = this.el.scrollTop + this.el.clientHeight,
@@ -109,15 +112,14 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
     }
   }
   this.isUpdating = false;
-  // var timeElapsed = performance.now() - start;
-  // console.log(timeElapsed + ' ms');
+  // console.log((performance.now() - start + ' ms');
 };
 
 //
 //
 
 // Set `top` value in data for each row
-ScrollableTable.prototype.setHeights = function(heightFn) {
+ScrollableTable.prototype.setHeights = function() {
   this.totalHeight = 0;
   for(var ndx = 0; ndx < this.data.length; ndx++) {
     this.data[ndx].__top = this.totalHeight;
