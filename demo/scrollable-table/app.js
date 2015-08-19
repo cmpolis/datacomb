@@ -33,8 +33,8 @@ var table = window.table = new Datacomb.ScrollableTable({
 
   //
   updateRow: function(rowData, rowEl) {
-    rowEl.childNodes[0].innerText = rowData.index;
-    rowEl.childNodes[1].innerText = rowData.color;
-    rowEl.childNodes[2].innerText = rowData.random;
+    rowEl.childNodes[0].textContent = rowData.index;
+    rowEl.childNodes[1].textContent = rowData.color;
+    rowEl.childNodes[2].textContent = rowData.random;
   }
 });

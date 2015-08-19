@@ -41,7 +41,9 @@ var ScrollableTable = function(opts) {
 
   //
   this.elSel = d3.select(this.el);
+  this.rowsWithNodes = []; // indices of rows w/ active dom nodes
   this.reset();
+  window.st = this;
 };
 
 //
@@ -54,29 +56,114 @@ ScrollableTable.prototype.reset = function() {
 
   // clear nodes and rebuild using `buildRow`
   while (this.el.firstChild) { this.el.remove(this.el.firstChild); }
-  var nodesToBuild = Math.min(this.availableNodes, this.data.length),
-      currentRowY = 0;
+
+  // clear all references between data and nodes
+  for(var ndx = 0; ndx < this.data.length; ndx++) { this.data[ndx].__node = null; }
+
+  // create new nodes and position absolutely
+  this.rowsWithNodes = [];
+  var nodesToBuild = Math.min(this.availableNodes, this.data.length);
   for(var ndx = 0; ndx < nodesToBuild; ndx++) {
     var newRow = this.buildRow(this.data[ndx]);
-    newRow.style.top = currentRowY + 'px';
-    currentRowY += this.heightFn(this.data[ndx]);
+    newRow.style.top = this.data[ndx].__top + 'px';
     this.el.appendChild(newRow);
+    this.rowsWithNodes.push(ndx);
+    this.data[ndx].__node = newRow;
   }
 
+  // add node to stick to bottom to preserve height
+  this.bottomEl = document.createElement('div');
+  this.bottomEl.innerText = '.';
+  this.bottomEl.style.position = 'absolute';
+  this.bottomEl.style.top = this.totalHeight + 'px';
+  this.el.appendChild(this.bottomEl);
+
   // setup scroll handling
-  this.elSel.on('scroll', function(evt) { console.log('scrolled', this); });
+  //this.elSel.on('scroll', this.updateVisibleRows);
+  // window.request animation frame ???
+  this.el.addEventListener('scroll', this.updateVisibleRows.bind(this));
 };
 
 //
 //
 
 //
-ScrollableTable.prototype.calculateHeight = function(heightFn) {
-  this.totalHeight = _.sum(this.data, (heightFn || this.heightFn));
+ScrollableTable.prototype.updateVisibleRows = function(evt) {
+  if(this.isUpdating) { return; }
+  this.isUpdating = true;
+  var start = performance.now();
+  var screenTop = this.el.scrollTop,
+      screenBottom = this.el.scrollTop + this.el.clientHeight,
+      screenMidpoint = (screenTop + screenBottom) / 2,
+      midNdx = _.sortedIndex(this.data, { __top: screenMidpoint }, '__top'),
+      freeSearchNdx = 0,
+      fillStart = Math.max(0, midNdx - Math.ceil(this.availableNodes / 2)),
+      fillEnd = Math.min(this.data.length, midNdx + Math.ceil(this.availableNodes / 2));
+  if(this.lastMidNdx === midNdx) { this.isUpdating = false; return; }
+  this.lastMidNdx = midNdx;
+
+  for(var rowNdx = fillStart; rowNdx < fillEnd; rowNdx++) {
+    if(!this.data[rowNdx].__node) {
+      while(this.rowsWithNodes[freeSearchNdx] > fillStart &&
+            this.rowsWithNodes[freeSearchNdx] < fillEnd) { freeSearchNdx++; }
+      this.data[rowNdx].__node = this.data[this.rowsWithNodes[freeSearchNdx]].__node;
+      this.updateRow(this.data[rowNdx], this.data[rowNdx].__node);
+      this.data[rowNdx].__node.style.top = this.data[rowNdx].__top + 'px';
+      this.data[this.rowsWithNodes[freeSearchNdx]].__node = null;
+      this.rowsWithNodes[freeSearchNdx] = rowNdx;
+      freeSearchNdx++;
+    }
+  }
+  this.isUpdating = false;
+  var timeElapsed = performance.now() - start;
+  console.log(timeElapsed + ' ms');
+
+  ///////////////////
+  // FIRST PASS...
+  // var visibleTop = this.el.scrollTop,
+  //     visibleBot = this.el.scrollTop + this.el.clientHeight,
+  //     visibleMid = this.el.scrollTop + (this.el.clientHeight / 2),
+  //     midNdx = _.sortedIndex(this.data, { __top: visibleMid }, '__top'),
+
+  //     // Visible scroll area is nearer to top of dataset
+  //     nearerToTop = midNdx < (this.data.length / 2),
+  //     freeNodeSearchNdx = nearerToTop ? this.data.length-1 : 0;
+
+  // console.log('updating...', nearerToTop, freeNodeSearchNdx, midNdx);
+
+  // Find rows in data that are nearest to the midpoint, but do not have existing nodes
+  //  then find rows in data furthest from the midpoint with existing nodes...
+  // for(var ndx = 0; ndx < this.data.length; ndx++) {
+  //     if(nearerToTop) {
+  //       while(!this.data[freeNodeSearchNdx].__node && freeNodeSearchNdx) { freeNodeSearchNdx--; }
+  //     } else {
+  //       while(!this.data[freeNodeSearchNdx].__node && freeNodeSearchNdx > this.data.length) { freeNodeSearchNdx++; }
+  //     }
+  //   if(!this.data[ndx].__node &&
+  //    (Math.abs(midNdx - ndx) < Math.abs(midNdx - freeNodeSearchNdx))) {
+  //     console.log('switching rows', freeNodeSearchNdx, ndx);
+  //     this.data[ndx].__node = this.data[freeNodeSearchNdx].__node;
+  //     this.updateRow(this.data[ndx], this.data[ndx].__node);
+  //     this.data[ndx].__node.style.top = this.data[ndx].__top + 'px';
+  //     this.data[freeNodeSearchNdx].__node = null;
+  //   }
+  // }
+};
+
+//
+//
+
+//
+ScrollableTable.prototype.calculateHeights = function(heightFn) {
+  this.totalHeight = 0;
+  for(var ndx = 0; ndx < this.data.length; ndx++) {
+    this.data[ndx].__top = this.totalHeight;
+    this.totalHeight += this.heightFn(this.data[ndx]);
+  }
   return this.totalHeight;
 };
 ScrollableTable.prototype.setHeight = function(heightFn) {
-  this.calculateHeight();
+  this.calculateHeights();
   this.elSel.style({
     height: this.visibleHeight+'px',
     overflow: 'scroll',
