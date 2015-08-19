@@ -18,11 +18,22 @@
     .test-col.index {
       font-weight: 700;
     }
+    .scrollable-table {
+      overflow-y: scroll;
+      position: relative;
+    }
+    #table-target {
+      height: 360px;
+      width: 200px;
+      margin: 40px 80px;
+      padding: 0 20px;
+      background: #EEE;
+    }
   </style>
 </head>
 
 <body>
-  <div id='table-target'></div>
+  <div id='table-target' class='scrollable-table'></div>
   <script src="/node_modules/lodash/index.js"></script>
   <script src="../../build/datacomb.js"></script>
   <script src="./app.js"></script>

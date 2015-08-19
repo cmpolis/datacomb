@@ -8,7 +8,7 @@ var table = window.table = new Datacomb.ScrollableTable({
   el: document.querySelector('#table-target'),
 
   //
-  data: _.range(1000).map(function(ndx) {
+  data: _.range(1e6).map(function(ndx) {
     return {
       index: ndx,
       color: _.sample(['red', 'blue', 'green', 'pink']),
@@ -18,7 +18,7 @@ var table = window.table = new Datacomb.ScrollableTable({
 
   //
   heightFn: function() { return 20; },
-  visibleHeight: 200,
+  availableNodes: 1000,
 
   //
   buildRow: function(rowData) {

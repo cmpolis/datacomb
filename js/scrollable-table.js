@@ -21,14 +21,12 @@
 //  updateRow: called when switching row data into a dom node
 
 //
-var _  = require('lodash'),
-    d3 = require('d3');
+var _  = require('lodash');
 
 //
 var defaults = {
   heightFn: function() { return 10; },
-  availableNodes: 100,
-  visibleHeight: 400
+  availableNodes: 100
 };
 
 //
@@ -40,10 +38,8 @@ var ScrollableTable = function(opts) {
   if(!this.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
 
   //
-  this.elSel = d3.select(this.el);
   this.rowsWithNodes = []; // indices of rows w/ active dom nodes
   this.reset();
-  window.st = this;
 };
 
 //
@@ -52,7 +48,7 @@ var ScrollableTable = function(opts) {
 // Reset or init dom elements and scrolling state
 ScrollableTable.prototype.reset = function() {
   this.yPosition = 0;
-  this.setHeight();
+  this.setHeights();
 
   // clear nodes and rebuild using `buildRow`
   while (this.el.firstChild) { this.el.remove(this.el.firstChild); }
@@ -79,8 +75,6 @@ ScrollableTable.prototype.reset = function() {
   this.el.appendChild(this.bottomEl);
 
   // setup scroll handling
-  //this.elSel.on('scroll', this.updateVisibleRows);
-  // window.request animation frame ???
   this.el.addEventListener('scroll', this.updateVisibleRows.bind(this));
 };
 
@@ -122,8 +116,8 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
 //
 //
 
-//
-ScrollableTable.prototype.calculateHeights = function(heightFn) {
+// Set `top` value in data for each row
+ScrollableTable.prototype.setHeights = function(heightFn) {
   this.totalHeight = 0;
   for(var ndx = 0; ndx < this.data.length; ndx++) {
     this.data[ndx].__top = this.totalHeight;
@@ -131,15 +125,6 @@ ScrollableTable.prototype.calculateHeights = function(heightFn) {
   }
   return this.totalHeight;
 };
-ScrollableTable.prototype.setHeight = function(heightFn) {
-  this.calculateHeights();
-  this.elSel.style({
-    height: this.visibleHeight+'px',
-    overflow: 'scroll',
-    position: 'relative'
-  });
-};
-
 
 //
 module.exports = ScrollableTable;
