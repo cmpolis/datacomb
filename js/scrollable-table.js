@@ -22,8 +22,7 @@
 
 "use strict";
 
-//
-var _  = require('lodash');
+var _sortedIndex = require('lodash/array/sortedIndex');
 
 //
 var defaults = {
@@ -33,14 +32,16 @@ var defaults = {
 
 //
 var ScrollableTable = function(opts) {
-  _.extend(this, defaults, opts);
-  if(!this.el) { throw new Error("Need to pass `el` into ScrollableTable."); }
-  if(!this.data) { throw new Error("Need to pass `data` into ScrollableTable."); }
-  if(!this.buildRow) { throw new Error("Need to pass `buildRow` into ScrollableTable."); }
-  if(!this.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
+  if(!opts.el) { throw new Error("Need to pass `el` into ScrollableTable."); }
+  if(!opts.data) { throw new Error("Need to pass `data` into ScrollableTable."); }
+  if(!opts.buildRow) { throw new Error("Need to pass `buildRow` into ScrollableTable."); }
+  if(!opts.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
 
-  //
+  // inherit from options or defaults
+  for(var key in defaults) { this[key] = defaults[key]; }
+  for(var key in opts) { this[key] = opts[key]; }
   this.rowsWithNodes = []; // indices of rows w/ active dom nodes
+  this.tops = []; // css `top` values for each data row - in seperate array for faster _sortedIndex call
   this.reset();
 };
 
@@ -89,10 +90,8 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
   this.isUpdating = true;
 
   // var start = performance.now();
-  var screenTop = this.el.scrollTop,
-      screenBottom = this.el.scrollTop + this.el.clientHeight,
-      screenMidpoint = (screenTop + screenBottom) / 2,
-      midNdx = _.sortedIndex(this.data, { __top: screenMidpoint }, '__top'),
+  var screenMidpoint = this.el.scrollTop + (this.el.clientHeight / 2),
+      midNdx = _sortedIndex(this.tops, screenMidpoint),
       freeSearchNdx = 0,
       fillStart = Math.max(0, midNdx - Math.ceil(this.availableNodes / 2)),
       fillEnd = Math.min(this.data.length, midNdx + Math.ceil(this.availableNodes / 2));
@@ -112,7 +111,7 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
     }
   }
   this.isUpdating = false;
-  // console.log((performance.now() - start + ' ms');
+  // console.log((performance.now() - start) + ' ms');
 };
 
 //
@@ -121,8 +120,10 @@ ScrollableTable.prototype.updateVisibleRows = function(evt) {
 // Set `top` value in data for each row
 ScrollableTable.prototype.setHeights = function() {
   this.totalHeight = 0;
+  this.tops = [];
   for(var ndx = 0; ndx < this.data.length; ndx++) {
     this.data[ndx].__top = this.totalHeight;
+    this.tops.push(this.totalHeight);
     this.totalHeight += this.heightFn(this.data[ndx]);
   }
   return this.totalHeight;
