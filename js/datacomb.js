@@ -5,8 +5,11 @@
 //
 "use strict";
 
-// Deps
+// NPM deps
 var ScrollableTable = require('smart-table-scroll');
+
+// local deps
+var columnBuilder = require('./column-builder');
 
 //
 var defaults = { };
@@ -22,6 +25,10 @@ var Datacomb = function(opts) {
   for(var key in defaults) { this[key] = defaults[key]; }
   for(var key in opts) { this[key] = opts[key]; }
 
+  //
+  this.columns = columnBuilder(this.rows, this.columns);
+
+  //
   this.initTable();
 };
 

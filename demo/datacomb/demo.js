@@ -22,7 +22,7 @@ var columns = [
     label: 'Pts / Min',
     accessor: function(d) { return d.PTS / d.MP },
     format: function(val) { return val.toFixed(3) + 'pts/min'; },
-  },
+  }
 ];
 
 //
