@@ -4,6 +4,9 @@ node_modules/
 npm-debug.log
 .npmrc
 
+# nvm stuff
+.nvmrc
+
 # built files ( run build command...)
 build/
 
