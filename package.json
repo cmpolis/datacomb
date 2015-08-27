@@ -35,7 +35,7 @@
     "serve": "^1.4.0",
     "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0",
-    "smart-table-scroll": "0.0.1",
+    "smart-table-scroll": "0.0.2",
     "stringify": "^3.1.0"
   }
 }
