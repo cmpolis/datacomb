@@ -7,6 +7,7 @@ var sinon = require('sinon');
 var sinonChai = require('sinon-chai');
 var should = chai.should();
 var sampleData = require('./sample-data');
+var dataParser = require('../js/data-parser');
 chai.use(sinonChai);
 
 //
@@ -27,8 +28,12 @@ describe('Data transformation (passing rows through columns)', function() {
         type: 'discrete' } ];
     });
 
-    it('builds a list of unique values');
-    it('assigns a color to each unique value');
+    it('builds a list of unique values', function() {
+      var parsed = dataParser(this.rows, this.columns),
+          parsedCol = parsed.columns[0];
+      parsedCol.uniqValues.should.have.length(7);
+      parsedCol.uniqValues.should.include('EU');
+    });
   });
 
   //

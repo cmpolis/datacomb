@@ -9,7 +9,7 @@
 var ScrollableTable = require('smart-table-scroll');
 
 // local deps
-var columnBuilder = require('./column-builder');
+var dataParser = require('./data-parser');
 
 //
 var defaults = { };
@@ -26,7 +26,7 @@ var Datacomb = function(opts) {
   for(var key in opts) { this[key] = opts[key]; }
 
   //
-  this.columns = columnBuilder(this.rows, this.columns);
+  this.parsed = dataParser(this.rows, this.columns);
 
   //
   this.initTable();
