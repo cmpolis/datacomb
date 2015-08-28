@@ -6,6 +6,7 @@ var chai = require('chai');
 var sinon = require('sinon');
 var sinonChai = require('sinon-chai');
 var should = chai.should();
+var expect = require('chai').expect;
 var sampleData = require('./sample-data');
 var dataParser = require('../js/data-parser');
 chai.use(sinonChai);
@@ -45,11 +46,25 @@ describe('Data transformation (passing rows through columns)', function() {
       this.columns = [ {
         label: 'Population',
         accessor: 'population' } ];
+      this.parsedCol = dataParser(this.rows, this.columns).columns[0];
     });
 
-    it('calculates the bounds of values for given column');
-    it('generates a width fn based on min/max bounds');
-    it('calculates summary stats: mean, median, sd, etc..');
+    it('calculates the bounds of values for given column', function() {
+      this.parsedCol.should.have.property('min');
+      this.parsedCol.should.have.property('max');
+      this.parsedCol.min.should.be.below(this.parsedCol.max);
+    });
+    it('generates a width fn based on min/max bounds', function() {
+      var widthFn = this.parsedCol.widthFn;
+      widthFn.should.be.a('function');
+      expect(widthFn(this.parsedCol.min)).to.equal(0);
+      expect(widthFn(this.parsedCol.max)).to.equal(100);
+    });
+    it('calculates summary stats: mean, median, sd, etc..', function() {
+      this.parsedCol.should.have.property('mean');
+      this.parsedCol.should.have.property('median');
+      this.parsedCol.should.have.property('sd');
+    });
     it('calculates histogram from row values');
   });
 
@@ -60,11 +75,17 @@ describe('Data transformation (passing rows through columns)', function() {
   describe('Function column definitions', function() {
     beforeEach(function() {
       this.columns = [ {
-        label: 'Density',
-        accessor: function(d) { return d.population / d.areaInSqKm; } } ];
+          label: 'Density',
+          accessor: function(d) { return d.population / d.areaInSqKm; } },
+        { label: 'DoubleNdx',
+          accessor: function(d, ndx) { return ndx * 2; } } ];
+      this.densityColumn = dataParser(this.rows, this.columns).columns[0];
+      this.doubleNdxColumn = dataParser(this.rows, this.columns).columns[1];
     });
 
-    it('calculates values based on fn');
+    it('calculates values based on fn', function() {
+      expect(this.doubleNdxColumn.min).to.equal(0);
+      expect(this.doubleNdxColumn.max).to.equal((this.rows.length-1) * 2);
+    });
   });
-
 });
