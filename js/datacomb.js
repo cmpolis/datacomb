@@ -29,7 +29,15 @@ var Datacomb = function(opts) {
   this.parsed = dataParser(this.rows, this.columns);
 
   //
+  this.buildDom();
   this.initTable();
+};
+//
+//
+
+//
+Datacomb.prototype.buildDom = function() {
+  console.log('adding datacomb dom elements...');
 };
 
 //
@@ -37,7 +45,7 @@ var Datacomb = function(opts) {
 
 //
 Datacomb.prototype.initTable = function() {
-  //this.table = new ScrollableTable({ });
+  this.table = new ScrollableTable({ });
 };
 
 //

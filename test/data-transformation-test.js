@@ -35,6 +35,11 @@ describe('Data transformation (passing rows through columns)', function() {
       parsedCol.uniqValues.should.have.length(7);
       parsedCol.uniqValues.should.include('EU');
     });
+    it('sets row value for column', function() {
+      var parsed = dataParser(this.rows, this.columns),
+          parsedRow = parsed.rows[0];
+      parsedRow._values[0].should.equal('EU');
+    });
   });
 
   //
@@ -66,6 +71,16 @@ describe('Data transformation (passing rows through columns)', function() {
       this.parsedCol.should.have.property('sd');
     });
     it('calculates histogram from row values');
+    it('sets row value for column', function() {
+      var parsed = dataParser(this.rows, this.columns),
+          parsedRow = parsed.rows[0];
+      parsedRow._values[0].should.equal(84000);
+    });
+    it('sets row width for column', function() {
+      var parsed = dataParser(this.rows, this.columns),
+          parsedRow = parsed.rows[0];
+      parsedRow._widths[0].should.be.a('Number');
+    });
   });
 
   //
@@ -87,5 +102,30 @@ describe('Data transformation (passing rows through columns)', function() {
       expect(this.doubleNdxColumn.min).to.equal(0);
       expect(this.doubleNdxColumn.max).to.equal((this.rows.length-1) * 2);
     });
+    it('sets row value for column', function() {
+      var parsed = dataParser(this.rows, this.columns);
+      parsed.rows[0]._values[1].should.equal(0);
+      parsed.rows[1]._values[1].should.equal(2);
+    });
+  });
+
+  //
+  describe('Columns with format functions', function() {
+    beforeEach(function() {
+      this.columns = [ {
+          label: 'with format',
+          format: function(v) { return 'fizz' + v; },
+          accessor: function(d) { return 'foo' } },
+        { label: 'without format',
+          accessor: function(d) { return 'foo' } } ];
+    });
+
+    it('uses the format function for labels', function() {
+      var parsed = dataParser(this.rows, this.columns),
+          parsedRow = parsed.rows[0];
+      parsedRow._labels[0].should.equal('fizzfoo');
+      parsedRow._labels[1].should.equal('foo');
+    });
+
   });
 });
