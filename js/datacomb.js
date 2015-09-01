@@ -66,7 +66,7 @@ Datacomb.prototype.initTable = function() {
         if(column.type === 'discrete') {
           nodeContent += "<div class='dc-disccell'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
         } else {
-          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._values[colNdx]+"</div></div>";
+          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
         }
       });
       node.innerHTML = nodeContent;
@@ -80,7 +80,7 @@ Datacomb.prototype.initTable = function() {
 
         } else {
           el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
-          el.childNodes[colNdx + 1].childNodes[1].textContent = d._values[colNdx];
+          el.childNodes[colNdx + 1].childNodes[1].textContent = d._labels[colNdx];
 
         }
       }

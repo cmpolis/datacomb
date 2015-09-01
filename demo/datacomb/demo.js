@@ -15,8 +15,16 @@ var columns = [
     type: 'discrete'
   },
   {
+    label: 'Age',
+    accessor: 'age'
+  },
+  {
     label: 'Points',
     accessor: 'pts'
+  },
+  {
+    label: 'Minutes',
+    accessor: 'mp'
   },
   {
     label: 'Pts / Min',
