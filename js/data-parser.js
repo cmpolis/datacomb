@@ -12,7 +12,7 @@ module.exports = function(rows, columns, labelAccessor) {
   if(_.isString(labelAccessor)) { labelAccessor = _.property(labelAccessor); }
 
   //
-  var values, value, min, max, mean, median, sd;
+  var values, value, mean, median, sd;
   var parsedColumns = columns.map(function(column, ndx) {
 
     // Collect values from each row
@@ -28,17 +28,15 @@ module.exports = function(rows, columns, labelAccessor) {
 
     // Continuous column, numeric value, eg: points, age, etc...
     } else {
-      min = _.min(values);
-      max = _.max(values);
+      column.min = _.min(values);
+      column.max = _.max(values);
 
       return _.extend(column, {
         ndx: ndx,
-        min: min,
-        max: max,
         mean: d3.mean(values),
         median: d3.median(values),
         sd: d3.deviation(values),
-        widthFn: function(x) { return ((x - min) / (max - min)) * 100; }
+        widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
       });
 
     }

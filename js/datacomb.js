@@ -45,14 +45,24 @@ Datacomb.prototype.buildDom = function() {
 
 //
 Datacomb.prototype.initTable = function() {
+  var self = this;
+
   this.table = new ScrollableTable({
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
     heightFn: function(d) { return 10; },
     buildRow: function(d) {
       var node = document.createElement('div');
+      var nodeContent = "<div class='dc-rlabel'>"+d._rowLabel+"</div>";
       node.classList.add('dc-row');
-      node.innerHTML = "<div>"+d._rowLabel+"</div>";
+      self.parsed.columns.forEach(function(column, colNdx) {
+        if(column.type === 'discrete') {
+          nodeContent += "<div class='dc-disccell'>"+d._values[colNdx]+"</div>";
+        } else {
+          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div>"+d._values[colNdx]+"</div>";
+        }
+      });
+      node.innerHTML = nodeContent;
       return node;
     },
     updateRow: function(d, el) {

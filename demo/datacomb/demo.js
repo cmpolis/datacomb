@@ -16,11 +16,11 @@ var columns = [
   },
   {
     label: 'Points',
-    accessor: 'PTS'
+    accessor: 'pts'
   },
   {
     label: 'Pts / Min',
-    accessor: function(d) { return d.PTS / d.MP },
+    accessor: function(d) { return d.pts / d.mp },
     format: function(val) { return val.toFixed(3) + 'pts/min'; },
   }
 ];

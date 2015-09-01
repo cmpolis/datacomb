@@ -25,4 +25,20 @@ body { height: 100%; }
     flex: 1 1 auto;
     align-self: stretch;
   }
+
+  //
+  .dc-disccell, .dc-datacell, .dc-rlabel {
+    display: inline-block;
+    width: 160px;
+  }
 }
+
+// Continuous columns (bars)
+.dc-datacell {
+  .dc-bar {
+    height: 2px;
+    background: blue;
+  }
+}
+
+// Discrete columns (colors)
