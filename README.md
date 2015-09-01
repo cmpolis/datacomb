@@ -8,7 +8,7 @@ An interactive tool for exploring large, tabular datasets.
 
 * **[IN PROGRESS]** v1/prototype:
   * :thumbsup: project setup: can build, test, view in browser... 
-  * :x: table row reuse *(minimize # of <.row> DOM elements)*
+  * :thumbsup: (https://github.com/cmpolis/smart-table-scroll) table row reuse *(minimize # of <.row> DOM elements)*
   * :x: table layout and properly sized bars
   * :x: filtering
   * :x: sorting
