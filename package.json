@@ -26,7 +26,7 @@
   "homepage": "https://github.com/cmpolis/datacomb",
   "dependencies": {
     "browserify": "^11.0.1",
-    "canvas-dpi-scaler": "0.0.2",
+    "canvas-dpi-scaler": "0.0.3",
     "chai": "^3.2.0",
     "d3": "^3.5.6",
     "lodash": "^3.10.1",
@@ -35,7 +35,7 @@
     "serve": "^1.4.0",
     "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0",
-    "smart-table-scroll": "0.0.2",
+    "smart-table-scroll": "0.1.0",
     "stringify": "^3.1.0"
   }
 }
