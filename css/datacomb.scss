@@ -3,6 +3,8 @@
 //
 
 // Size and position
+$cellWidth: 160px;
+
 html { height: 100%; }
 body { height: 100%; }
 .datacomb {
@@ -18,6 +20,7 @@ body { height: 100%; }
     order: 0;
     flex: 0 1 80px;
     align-self: stretch;
+    position: relative;
   }
   .dc-table {
     padding: 0 20px;
@@ -32,12 +35,26 @@ body { height: 100%; }
   }
   .dc-disccell, .dc-datacell, .dc-rlabel {
     display: inline-block;
-    width: 160px;
+    width: $cellWidth;
+    vertical-align: top;
+  }
+}
+
+// Column headers
+.dc-col-headers {
+  bottom: 0;
+  position: absolute;
+  padding: 2px 20px;
+  .dc-clabel {
+    display: inline-block;
+    width: $cellWidth;
+    font-weight: bold;
   }
 }
 
 // Row labels
 .dc-rlabel {
+  font-weight: 700;
   .dc-label { display: none; }
 }
 .dc-row:hover .dc-rlabel {

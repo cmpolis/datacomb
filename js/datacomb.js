@@ -38,6 +38,12 @@ var Datacomb = function(opts) {
 //
 Datacomb.prototype.buildDom = function() {
   console.log('adding datacomb dom elements...');
+
+  var colHeaderEl = this.el.querySelector('.dc-col-headers');
+  colHeaderEl.innerHTML = "<div class='dc-clabel'>Name</div>" +
+    this.parsed.columns
+      .map(function(col) { return "<div class='dc-clabel'>"+col.label+"</div>"; })
+      .join('');
 };
 
 //
@@ -50,7 +56,7 @@ Datacomb.prototype.initTable = function() {
   this.table = new ScrollableTable({
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
-    availableNodes: 400,
+    availableNodes: 250,
     heightFn: function(d) { return 4; },
     buildRow: function(d) {
       var node = document.createElement('div');

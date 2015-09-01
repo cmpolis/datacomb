@@ -38,7 +38,6 @@ module.exports = function(rows, columns, labelAccessor) {
         sd: d3.deviation(values),
         widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
       });
-
     }
   });
 
