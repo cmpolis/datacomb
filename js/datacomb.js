@@ -26,7 +26,7 @@ var Datacomb = function(opts) {
   for(var key in opts) { this[key] = opts[key]; }
 
   //
-  this.parsed = dataParser(this.data, this.columns);
+  this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
 
   //
   this.buildDom();
@@ -46,18 +46,18 @@ Datacomb.prototype.buildDom = function() {
 //
 Datacomb.prototype.initTable = function() {
   this.table = new ScrollableTable({
-    el: document.querySelector('#dc-target'),
+    el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
     heightFn: function(d) { return 10; },
     buildRow: function(d) {
       var node = document.createElement('div');
       node.classList.add('dc-row');
-      node.innerHTML = "<div>"+d.ndx+"</div>";
+      node.innerHTML = "<div>"+d._rowLabel+"</div>";
       return node;
     },
-    updateRow: function(row, el) {
-      console.log(row, el);
-      el.childNodes[0].textContent = row.ndx;
+    updateRow: function(d, el) {
+      console.log(d, el);
+      el.childNodes[0].textContent = d._rowLabel;
     }
   });
 };

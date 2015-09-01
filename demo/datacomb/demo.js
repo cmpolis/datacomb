@@ -44,13 +44,16 @@ d3.csv('../../data/nba-player-totals-20142015.csv')
     var dc = window.dc = new Datacomb.datacomb({
 
       //
-      el: document.getElementById('dc-target'),
+      el: document.getElementById('datacomb-target'),
 
       //
       data: rows,
 
       //
-      columns: columns
+      columns: columns,
+
+      //
+      labelAccessor: 'name'
 
     });
   });

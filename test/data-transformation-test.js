@@ -126,6 +126,28 @@ describe('Data transformation (passing rows through columns)', function() {
       parsedRow._labels[0].should.equal('fizzfoo');
       parsedRow._labels[1].should.equal('foo');
     });
+  });
 
+  //
+  describe('Row label definition', function() {
+    beforeEach(function() {
+      this.columns = [ {
+        label: 'Pop',
+        accessor: 'population' } ];
+    });
+
+    it('uses row index when `label` is not passed in', function() {
+      var parsed = dataParser(this.rows, this.columns);
+      parsed.rows[0]._rowLabel.should.equal('0');
+    });
+    it('can be passed in as a string(property name)', function() {
+      var parsed = dataParser(this.rows, this.columns, 'countryName');
+      parsed.rows[0]._rowLabel.should.equal('Andorra');
+    });
+    it('can be passed in as an accessor function with `row`, `ndx` params', function() {
+      var parsed = dataParser(this.rows, this.columns,
+        function(d,ndx) { return d.continent + ndx });
+      parsed.rows[0]._rowLabel.should.equal('EU0');
+    });
   });
 });

@@ -1,0 +1,28 @@
+//
+//
+//
+
+// Size and position
+html { height: 100%; }
+body { height: 100%; }
+.datacomb {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-content: stretch;
+  align-items: flex-start;
+
+  .dc-header {
+    order: 0;
+    flex: 0 1 80px;
+    align-self: stretch;
+  }
+  .dc-table {
+    padding: 0 20px;
+    order: 0;
+    flex: 1 1 auto;
+    align-self: stretch;
+  }
+}

@@ -7,7 +7,9 @@ var _ = require('lodash'),
     d3 = require('d3');
 
 //
-module.exports = function(rows, columns) {
+module.exports = function(rows, columns, labelAccessor) {
+  labelAccessor = labelAccessor || function(d, ndx) { return ''+ndx; };
+  if(_.isString(labelAccessor)) { labelAccessor = _.property(labelAccessor); }
 
   //
   var values, value, min, max, mean, median, sd;
@@ -58,7 +60,8 @@ module.exports = function(rows, columns) {
       ndx: ndx,
       _values: values,
       _widths: widths,
-      _labels: labels
+      _labels: labels,
+      _rowLabel: labelAccessor(row, ndx)
     });
   });
 
