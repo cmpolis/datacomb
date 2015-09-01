@@ -50,24 +50,34 @@ Datacomb.prototype.initTable = function() {
   this.table = new ScrollableTable({
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
-    heightFn: function(d) { return 10; },
+    availableNodes: 400,
+    heightFn: function(d) { return 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
-      var nodeContent = "<div class='dc-rlabel'>"+d._rowLabel+"</div>";
+      var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
       node.classList.add('dc-row');
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
-          nodeContent += "<div class='dc-disccell'>"+d._values[colNdx]+"</div>";
+          nodeContent += "<div class='dc-disccell'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
         } else {
-          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div>"+d._values[colNdx]+"</div>";
+          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._values[colNdx]+"</div></div>";
         }
       });
       node.innerHTML = nodeContent;
       return node;
     },
     updateRow: function(d, el) {
-      console.log(d, el);
-      el.childNodes[0].textContent = d._rowLabel;
+      el.childNodes[0].childNodes[0].textContent = d._rowLabel;
+      for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
+        if(self.parsed.columns[colNdx].type === 'discrete') {
+          el.childNodes[colNdx + 1].childNodes[0].textContent = d._values[colNdx];
+
+        } else {
+          el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
+          el.childNodes[colNdx + 1].childNodes[1].textContent = d._values[colNdx];
+
+        }
+      }
     }
   });
 };

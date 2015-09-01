@@ -27,18 +27,42 @@ body { height: 100%; }
   }
 
   //
+  .dc-row {
+    height: 4px;
+  }
   .dc-disccell, .dc-datacell, .dc-rlabel {
     display: inline-block;
     width: 160px;
   }
 }
 
+// Row labels
+.dc-rlabel {
+  .dc-label { display: none; }
+}
+.dc-row:hover .dc-rlabel {
+  .dc-label { display: block; }
+}
+
 // Continuous columns (bars)
 .dc-datacell {
+  .dc-cont-val { display: none; }
   .dc-bar {
-    height: 2px;
+    height: 3px;
     background: blue;
+  }
+}
+.dc-row:hover .dc-datacell {
+  .dc-cont-val { display: block; }
+  .dc-bar {
+    background: red;
   }
 }
 
 // Discrete columns (colors)
+.dc-disccell {
+  .dc-disc-val { display: none; }
+}
+.dc-row:hover .dc-disccell {
+  .dc-disc-val { display: block; }
+}
