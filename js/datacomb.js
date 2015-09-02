@@ -7,6 +7,7 @@
 
 // NPM deps
 var ScrollableTable = require('smart-table-scroll');
+var _ = require('lodash');
 
 // local deps
 var dataParser = require('./data-parser');
@@ -87,6 +88,18 @@ Datacomb.prototype.initTable = function() {
     }
   });
 };
+
+//
+Datacomb.prototype.sortByColumn = function(columnNdx, sortDescending) {
+  this.parsed.rows = _.sortBy(this.parsed.rows, function(d) { return d._values[columnNdx]; });
+  if(sortDescending) { this.parsed.rows.reverse(); }
+  // this.table.updateData(this.parsed);
+  // this.table.data = this.parsed.rows;
+  // this.table.reset();
+};
+
+//
+Datacomb.prototype.applyFilters = function(filters) { };
 
 //
 module.exports = Datacomb;
