@@ -7,6 +7,7 @@
 
 // NPM deps
 var ScrollableTable = require('smart-table-scroll');
+var Ractive = require('ractive');
 var _ = require('lodash');
 
 // local deps
@@ -17,7 +18,6 @@ var defaults = { };
 
 //
 var Datacomb = function(opts) {
-  console.log('init\'d Datacomb...');
   if(!opts.el) { throw new Error("Need to pass `el` into Datacomb."); }
   if(!opts.data) { throw new Error("Need to pass `data` into Datacomb."); }
   if(!opts.columns) { throw new Error("Need to pass `columns` into Datacomb."); }
@@ -30,21 +30,32 @@ var Datacomb = function(opts) {
   this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
 
   //
-  this.buildDom();
+  this.initManager();
   this.initTable();
 };
 //
 //
 
 //
-Datacomb.prototype.buildDom = function() {
+Datacomb.prototype.initManager = function() {
   console.log('adding datacomb dom elements...');
 
-  var colHeaderEl = this.el.querySelector('.dc-col-headers');
-  colHeaderEl.innerHTML = "<div class='dc-clabel'>Name</div>" +
-    this.parsed.columns
-      .map(function(col) { return "<div class='dc-clabel'>"+col.label+"</div>"; })
-      .join('');
+  // init Ractive element to build dom, handle settings and interaction
+  this.manager = new Manager({
+    el: this.el,
+    data: {
+      cols: this.parsed.columns
+    }
+  });
+
+  this.manager.observe('sortColNdx sortDesc', this.applySort);
+  this.manager.observe('filters.*', this.applyFilters);
+
+  // var colHeaderEl = this.el.querySelector('.dc-col-headers');
+  // colHeaderEl.innerHTML = "<div class='dc-clabel'>Name</div>" +
+  //   this.parsed.columns
+  //     .map(function(col) { return "<div class='dc-clabel'>"+col.label+"</div>"; })
+  //     .join('');
 };
 
 //
@@ -90,7 +101,7 @@ Datacomb.prototype.initTable = function() {
 };
 
 //
-Datacomb.prototype.sortByColumn = function(columnNdx, sortDescending) {
+Datacomb.prototype.applySort = function(columnNdx, sortDescending) {
   this.parsed.rows = _.sortBy(this.parsed.rows, function(d) { return d._values[columnNdx]; });
   if(sortDescending) { this.parsed.rows.reverse(); }
   // this.table.updateData(this.parsed);
