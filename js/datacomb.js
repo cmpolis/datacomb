@@ -12,6 +12,7 @@ var _ = require('lodash');
 
 // local deps
 var dataParser = require('./data-parser');
+var Manager = require('./manager');
 
 //
 var defaults = { };
@@ -38,7 +39,7 @@ var Datacomb = function(opts) {
 
 //
 Datacomb.prototype.initManager = function() {
-  console.log('adding datacomb dom elements...');
+  var self = this;
 
   // init Ractive element to build dom, handle settings and interaction
   this.manager = new Manager({
@@ -48,8 +49,12 @@ Datacomb.prototype.initManager = function() {
     }
   });
 
-  this.manager.observe('sortColNdx sortDesc', this.applySort);
-  this.manager.observe('filters.*', this.applyFilters);
+  this.manager.observe('sortColNdx sortDesc', this.applySort, { init: false });
+  this.manager.observe('filters.*', this.applyFilters, { init: false });
+  this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
+    console.log('sort:', arguments);
+    self.applySort(colNdx, descOrder);
+  });
 
   // var colHeaderEl = this.el.querySelector('.dc-col-headers');
   // colHeaderEl.innerHTML = "<div class='dc-clabel'>Name</div>" +
@@ -104,6 +109,7 @@ Datacomb.prototype.initTable = function() {
 Datacomb.prototype.applySort = function(columnNdx, sortDescending) {
   this.parsed.rows = _.sortBy(this.parsed.rows, function(d) { return d._values[columnNdx]; });
   if(sortDescending) { this.parsed.rows.reverse(); }
+  // console.log(_.map(this.parsed.rows, function(d) { return d._values[columnNdx]; }));
   // this.table.updateData(this.parsed);
   // this.table.data = this.parsed.rows;
   // this.table.reset();

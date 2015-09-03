@@ -16,6 +16,16 @@ body { height: 100%; }
   align-content: stretch;
   align-items: flex-start;
 
+  button {
+    border: none;
+    outline: none;
+    background: none;
+    cursor: pointer;
+    &:hover {
+      color: #999;
+    }
+  }
+
   .dc-header {
     order: 0;
     flex: 0 1 80px;
@@ -45,7 +55,7 @@ body { height: 100%; }
   bottom: 0;
   position: absolute;
   padding: 2px 20px;
-  .dc-clabel {
+  > li {
     display: inline-block;
     width: $cellWidth;
     font-weight: bold;

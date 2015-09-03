@@ -1,4 +1,11 @@
 <div class='dc-header'>
-  <div class='dc-col-headers'></div>
+  <ul class='dc-col-headers'>
+          <li><ColHeader label="Row Label" /></li>
+    {{#cols:colNdx}}
+      <li><ColHeader
+        label={{ label }}
+        index={{ colNdx }} /></li>
+    {{/cols}}
+  </ul>
 </div>
 <div class='dc-table'></div>

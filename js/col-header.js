@@ -13,8 +13,9 @@ var ColHeader = Ractive.extend({
   template: require('./templates/col-header.hbs'),
   data: function() {
     return {
-      name: 'Colname Undefined'
+      label: 'Colname Undefined',
       isDiscrete: false,
+      index: 0,
       min: 0,
       max: 1
     };
