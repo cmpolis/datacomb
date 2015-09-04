@@ -1,8 +1,11 @@
 <div class='dc-header'>
   <ul class='dc-col-headers'>
-          <li><ColHeader label="Row Label" /></li>
+    <li><ColHeader label="Row Label" index={{-1}}/></li>
     {{#cols:colNdx}}
       <li><ColHeader
+        isDiscrete={{ type=='discrete' }}
+        min={{ cols[colNdx].min }}
+        max={{ cols[colNdx].max }}
         label={{ label }}
         index={{ colNdx }} /></li>
     {{/cols}}

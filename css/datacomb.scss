@@ -4,6 +4,7 @@
 
 // Size and position
 $cellWidth: 160px;
+$cellRightMargin: 10px;
 
 html { height: 100%; }
 body { height: 100%; }
@@ -46,6 +47,7 @@ body { height: 100%; }
   .dc-disccell, .dc-datacell, .dc-rlabel {
     display: inline-block;
     width: $cellWidth;
+    margin-left: $cellRightMargin;
     vertical-align: top;
   }
 }
@@ -58,6 +60,7 @@ body { height: 100%; }
   > li {
     display: inline-block;
     width: $cellWidth;
+    margin-right: $cellRightMargin;
     font-weight: bold;
   }
 }
@@ -76,7 +79,8 @@ body { height: 100%; }
   .dc-cont-val { display: none; }
   .dc-bar {
     height: 3px;
-    background: blue;
+    background: #666;
+    border-left: 1px solid #333;
   }
 }
 .dc-row:hover .dc-datacell {
@@ -92,4 +96,20 @@ body { height: 100%; }
 }
 .dc-row:hover .dc-disccell {
   .dc-disc-val { display: block; }
+}
+
+// Axis
+.dc-ch-axis {
+  overflow: visible;
+  // margin-bottom: -24px;
+  margin-left: 3px;
+
+  line, path {
+    fill: none;
+    stroke: black;
+  }
+  text {
+    font-weight: normal;
+    font-size: 12px;
+  }
 }

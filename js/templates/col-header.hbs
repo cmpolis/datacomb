@@ -1,7 +1,9 @@
-<div class='dc-col-header'>
+<div class='dc-col-header' {{#if isDiscrete}}discrete{{/if}}>
   <h4>
     {{label}}
     <button on-click='sort-by-col:{{index}},false'>▲</button>
     <button on-click='sort-by-col:{{index}},true'>▼</button>
   </h4>
+  <svg class='dc-ch-axis' height='20' width='160'>
+  </svg>
 </div>

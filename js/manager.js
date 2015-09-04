@@ -7,6 +7,7 @@
 //
 var Ractive = require('ractive');
 var _ = require('lodash');
+var d3 = require('d3');
 
 //
 var ColHeader = require('./col-header');
