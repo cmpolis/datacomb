@@ -23,13 +23,15 @@ var ColHeader = Ractive.extend({
     };
   },
   scale: d3.scale.linear(),
-  axis: d3.svg.axis().orient('bottom').ticks(3),
+  axis: d3.svg.axis().orient('top').ticks(3),
   onrender: function() {
 
     // build svg axis
     this.axis.scale(this.scale);
     this.axisSvg = d3.select(this.el).select('.dc-ch-axis');
-    this.axisSvg.append('g').attr('class', 'ch-axis-g');
+    this.axisSvg.append('g')
+      .attr('class', 'ch-axis-g')
+      .attr('transform', 'translate(0,24)');
 
     // update axis on data bounds, width changes
     this.observe('min max width', function() {

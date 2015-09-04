@@ -54,12 +54,6 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
-
-  // var colHeaderEl = this.el.querySelector('.dc-col-headers');
-  // colHeaderEl.innerHTML = "<div class='dc-clabel'>Name</div>" +
-  //   this.parsed.columns
-  //     .map(function(col) { return "<div class='dc-clabel'>"+col.label+"</div>"; })
-  //     .join('');
 };
 
 //
@@ -72,12 +66,13 @@ Datacomb.prototype.initTable = function() {
   this.table = new ScrollableTable({
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
-    availableNodes: 250,
-    heightFn: function(d) { return 4; },
+    availableNodes: 1000,
+    heightFn: function(d) { return d.hovered ? 16 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
       node.classList.add('dc-row');
+      node._dcndx = d.ndx;
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
           nodeContent += "<div class='dc-disccell'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
@@ -89,7 +84,13 @@ Datacomb.prototype.initTable = function() {
       return node;
     },
     updateRow: function(d, el) {
+      el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
+      if(d.hovered) {
+        el.setAttribute('dc-hover', null);
+      } else {
+        el.removeAttribute('dc-hover', null);
+      }
       for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
         if(self.parsed.columns[colNdx].type === 'discrete') {
           el.childNodes[colNdx + 1].childNodes[0].textContent = d._values[colNdx];
@@ -102,12 +103,57 @@ Datacomb.prototype.initTable = function() {
       }
     }
   });
+
+  this.currentHoverNdx = 0;
+  this.isDragging = false;
+
+  // Hover interaction: highlight row
+  this.table.el.addEventListener('mouseover', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    self.parsed.rows[self.currentHoverNdx].hovered = false;
+    self.parsed.rows[node._dcndx].hovered = true;
+    self.currentHoverNdx = node._dcndx;
+    self.table.updateData(self.parsed.rows);
+  });
+
+  // Click interaction: focus single row
+  this.table.el.addEventListener('click', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    console.log('click row...', node._dcndx);
+  });
+
+  // Drag interaction: focus multiple rows
+  this.table.el.addEventListener('mousedown', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    console.log('start dragging...', node._dcndx);
+  });
+  this.table.el.addEventListener('mouseup', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    console.log('done dragging...', node._dcndx);
+  });
 };
 
 //
 Datacomb.prototype.applySort = function(columnNdx, sortDescending) {
   this.parsed.rows = _.sortBy(this.parsed.rows, function(d) { return d._values[columnNdx]; });
   if(sortDescending) { this.parsed.rows.reverse(); }
+  this.parsed.rows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
   this.table.updateData(this.parsed.rows);
 };
 
