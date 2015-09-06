@@ -10,8 +10,9 @@ An interactive tool for exploring large, tabular datasets.
   * :thumbsup: project setup: can build, test, view in browser... 
   * :thumbsup: (https://github.com/cmpolis/smart-table-scroll) table row reuse *(minimize # of <.row> DOM elements)*
   * :thumbsup: table layout and properly sized bars
-  * :x: hover interaction
-  * :x: drag interaction
+  * :thumbsup: hover interaction
+  * :thumbsup: click interaction
+  * :thumbsup: drag interaction
   * :x: filtering
   * :x: sorting
   * :x: scatter plots - canvas or svg?
@@ -31,6 +32,7 @@ An interactive tool for exploring large, tabular datasets.
   * :x: illustrate filter response on histograms
   * :x: illustrate filter response on scatter plots
   * :x: close/expand groupings in table
+  * :x: keyboard shortcuts
 * :x: HTMLWidget/R package
 * :x: Serializable table configuration format. JSON?
 * :x: Natural language/DSL mode for table configuration, querying
