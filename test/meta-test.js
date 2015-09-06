@@ -26,14 +26,14 @@ describe('Project setup', function() {
   });
 
   //
-  it('should export components from a root include', function() {
-    this.project.should.have.property('colors');
-  });
+  // it('should export components from a root include', function() {
+  //   this.project.should.have.property('colors');
+  // });
 
   //
-  it('should be able to require components directly', function() {
-    var requireFn = function() { require('../js/colors'); };
-    requireFn.should.not.throw(Error);
-  });
+  // it('should be able to require components directly', function() {
+  //   var requireFn = function() { require('../js/colors'); };
+  //   requireFn.should.not.throw(Error);
+  // });
 
 });
