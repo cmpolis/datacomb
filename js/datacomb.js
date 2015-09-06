@@ -30,14 +30,13 @@ var Datacomb = function(opts) {
 
   //
   this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
+  this.allRows = this.parsed.rows;
+  this.pipelinedRows = this.allRows;
 
   //
   this.initManager();
   this.initTable();
 };
-
-//
-//
 
 //
 Datacomb.prototype.initManager = function() {
@@ -58,20 +57,20 @@ Datacomb.prototype.initManager = function() {
   });
   this.manager.observe('focusOnHover', function(shouldFocus) {
     if(!shouldFocus) {
-      self.parsed.rows[self.currentHoverNdx].hovered = false;
-      self.table.updateData(self.parsed.rows);
+      self.allRows[self.currentHoverNdx].hovered = false;
+      self.table.updateData(self.getRows());
     }
   }, { init: false });
   this.manager.observe('hideUnfocused', function(shouldHide) {
     //
   }, { init: false });
   this.manager.on('focus-all', function(evt) {
-    self.parsed.rows.forEach(function(r) { r.focused = true; });
-    self.table.updateData(self.parsed.rows);
+    self.allRows.forEach(function(r) { r.focused = true; });
+    self.table.updateData(self.getRows());
   });
   this.manager.on('unfocus-all', function(evt) {
-    self.parsed.rows.forEach(function(r) { r.focused = false; });
-    self.table.updateData(self.parsed.rows);
+    self.allRows.forEach(function(r) { r.focused = false; });
+    self.table.updateData(self.getRows());
   });
 
 };
@@ -85,7 +84,7 @@ Datacomb.prototype.initTable = function() {
 
   this.table = new ScrollableTable({
     el: this.el.querySelector('.dc-table'),
-    data: this.parsed.rows,
+    data: this.allRows,
     availableNodes: 1000,
     heightFn: function(d) { return (d.hovered || d.focused) ? 17 : 4; },
     buildRow: function(d) {
@@ -135,15 +134,15 @@ Datacomb.prototype.initTable = function() {
       if(node.parentNode) { node = node.parentNode; }
       else { return; }
     }
-    self.parsed.rows[self.currentHoverNdx].hovered = false;
-    self.parsed.rows[node._dcndx].hovered = true;
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.allRows[node._dcndx].hovered = true;
     self.currentHoverNdx = node._dcndx;
-    self.manager.set('hoverRow', self.parsed.rows[node._dcndx]);
-    self.table.updateData(self.parsed.rows);
+    self.manager.set('hoverRow', self.allRows[node._dcndx]);
+    self.table.updateData(self.getRows());
 
     // Drag actions
     if(evt.buttons) {
-      self.parsed.rows[node._dcndx].focused = !self.parsed.rows[node._dcndx].focused;
+      self.allRows[node._dcndx].focused = !self.allRows[node._dcndx].focused;
     }
   });
 
@@ -173,7 +172,7 @@ Datacomb.prototype.initTable = function() {
 
     // Single row selection - toggle
     if(minNdx === maxNdx) {
-      self.parsed.rows[minNdx].focused = !self.parsed.rows[minNdx].focused;
+      self.allRows[minNdx].focused = !self.allRows[minNdx].focused;
 
     // Multiple row selection - more complicated logic???
     //   all selected -> unselect
@@ -181,26 +180,50 @@ Datacomb.prototype.initTable = function() {
     //   none selected -> select
     } else {
       for(var ndx = minNdx; ndx < maxNdx; ndx++) {
-        self.parsed.rows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
+        self.allRows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
       }
     }
-    self.parsed.rows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.parsed.rows);
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.table.updateData(self.getRows());
   };
 };
 
+// Run data through pipeline if neccesary: sort -> filter -> group -> ...
+Datacomb.prototype.getRows = function(opts) {
+
+  // Something changed, run data through pipeline...
+  if(opts) {
+
+    // sort...
+    if(opts.sort) {
+      this.allRows = _.sortBy(this.allRows, function(d) {
+        return d._values[opts.sort.colNdx] * (opts.sort.desc ? -1 : 1);
+      });
+      this.allRows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
+    }
+
+    // filter...
+    this.filters = opts.filters || this.filters;
+    this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
+
+    // groupBy...
+
+  }
+  return this.pipelinedRows;
+};
+
 //
-Datacomb.prototype.applySort = function(columnNdx, sortDescending) {
-  this.parsed.rows = _.sortBy(this.parsed.rows, function(d) { return d._values[columnNdx]; });
-  if(sortDescending) { this.parsed.rows.reverse(); }
-  this.parsed.rows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
-  this.table.updateData(this.parsed.rows);
+Datacomb.prototype.applySort = function(colNdx, desc) {
+  this.table.updateData(this.getRows({
+    sort: { colNdx: colNdx, desc: desc }
+  }));
 };
 
 //
 Datacomb.prototype.applyFilters = function(filters) {
-  this.parsed.rows = dataFilter(this.parsed.rows, filters);
-  this.table.updateData(this.parsed.rows);
+  this.table.updateData(this.getRows({
+    filters: filters
+  }));
 };
 
 //
