@@ -36,7 +36,7 @@ var ColHeader = Ractive.extend({
         .attr('transform', 'translate(0,24)');
       this.axisSvg.append('line')
         .attr('class', 'axis-hover-line')
-        .attr('x1', 10).attr('y1', 10)
+        .attr('x1', 10).attr('y1', 0)
         .attr('x2', 10).attr('y2', 24);
 
       // update axis on data bounds, width changes
@@ -48,13 +48,11 @@ var ColHeader = Ractive.extend({
           .range([0, this.get('width')]);
         this.axisSvg.select('.ch-axis-g')
           .call(this.axis);
-        console.log([this.get('min'), this.get('max')]);
       });
 
       // move hover slider
       this.observe('hoverValue', function(newHoverValue) {
         var pxValue = this.scale(newHoverValue);
-        console.log(newHoverValue, this.scale);
         this.axisSvg.select('.axis-hover-line')
           .attr('x1', pxValue-1)
           .attr('x2', pxValue-1);

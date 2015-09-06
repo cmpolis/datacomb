@@ -1,4 +1,17 @@
 <div class='dc-header'>
+  <div>
+    <label>
+      <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover
+    </label>
+    <label>
+      <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused
+    </label>
+    <button>Show Filters</button>
+    <button>Summary Statistics</button>
+    <button>Histograms</button>
+    <button on-click='focus-all'>Focus All</button>
+    <button on-click='unfocus-all'>Unfocus All</button>
+  </div>
   <ul class='dc-col-headers'>
     <li><ColHeader label="Row Label" index={{-1}}/></li>
     {{#cols:colNdx}}

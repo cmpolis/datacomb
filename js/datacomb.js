@@ -54,6 +54,23 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
+  this.manager.observe('focusOnHover', function(shouldFocus) {
+    if(!shouldFocus) {
+      self.parsed.rows[self.currentHoverNdx].hovered = false;
+      self.table.updateData(self.parsed.rows);
+    }
+  }, { init: false });
+  this.manager.observe('hideUnfocused', function(shouldHide) {
+    //
+  }, { init: false });
+  this.manager.on('focus-all', function(evt) {
+    self.parsed.rows.forEach(function(r) { r.focused = true; });
+    self.table.updateData(self.parsed.rows);
+  });
+  this.manager.on('unfocus-all', function(evt) {
+    self.parsed.rows.forEach(function(r) { r.focused = false; });
+    self.table.updateData(self.parsed.rows);
+  });
 };
 
 //
@@ -67,7 +84,7 @@ Datacomb.prototype.initTable = function() {
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
     availableNodes: 1000,
-    heightFn: function(d) { return (d.hovered || d.focused) ? 18 : 4; },
+    heightFn: function(d) { return (d.hovered || d.focused) ? 17 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
@@ -109,6 +126,7 @@ Datacomb.prototype.initTable = function() {
 
   // Hover interaction: highlight row
   this.table.el.addEventListener('mouseover', function(evt) {
+    if(!self.manager.get('focusOnHover')) { return; }
     var node = evt.target;
     while(node._dcndx === undefined) {
       if(node.parentNode) { node = node.parentNode; }
@@ -134,7 +152,6 @@ Datacomb.prototype.initTable = function() {
       else { return; }
     }
     self.dragStartNdx = node._dcndx;
-    console.log('start dragging...', node._dcndx);
   });
   this.table.el.addEventListener('mouseup', function(evt) {
     var node = evt.srcElement;
@@ -143,7 +160,7 @@ Datacomb.prototype.initTable = function() {
       else { return; }
     }
     self.focusRows(self.dragStartNdx, node._dcndx);
-    console.log('done dragging...', self.dragStartNdx, node._dcndx);
+    // console.log('done dragging...', self.dragStartNdx, node._dcndx);
   });
 
   //
@@ -161,7 +178,6 @@ Datacomb.prototype.initTable = function() {
     //   none selected -> select
     } else {
       for(var ndx = minNdx; ndx < maxNdx; ndx++) {
-        console.log(ndx);
         self.parsed.rows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
       }
     }

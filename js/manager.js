@@ -22,6 +22,8 @@ var Manager = Ractive.extend({
     return {
       sortColNdx: null,
       sortDesc: false,
+      focusOnHover: true,
+      hideUnfocused: false,
       hoverValues: []
     };
   }
