@@ -135,7 +135,7 @@ Datacomb.prototype.initTable = function() {
     self.parsed.rows[self.currentHoverNdx].hovered = false;
     self.parsed.rows[node._dcndx].hovered = true;
     self.currentHoverNdx = node._dcndx;
-    self.manager.set('hoverValues', self.parsed.rows[node._dcndx]._values);
+    self.manager.set('hoverRow', self.parsed.rows[node._dcndx]);
     self.table.updateData(self.parsed.rows);
 
     // Drag actions

@@ -1,4 +1,4 @@
-<div class='dc-header'>
+<div class='dc-header' {{#if filtersOpen}}filtering{{/if}}>
   <div>
     <label>
       <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover
@@ -6,14 +6,30 @@
     <label>
       <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused
     </label>
-    <button>Show Filters</button>
+    <button on-click='toggle("filtersOpen")'>Show Filters</button>
     <button>Summary Statistics</button>
     <button>Histograms</button>
     <button on-click='focus-all'>Focus All</button>
     <button on-click='unfocus-all'>Unfocus All</button>
   </div>
+
+
+  <!-- Column filters: max/min text inputs + slider (continous) or checkboxes (discrete) -->
+  {{#if filtersOpen}}
+    <ul class='dc-col-filters'>
+      <li>Filters:</li>
+      {{#cols:colNdx}}
+        <li>{{>colFilter}}</li>
+      {{/cols}}
+    </ul>
+  {{/if}}
+
+  <!-- Column headers: label + controls + axis -->
   <ul class='dc-col-headers'>
-    <li><ColHeader label="Row Label" index={{-1}}/></li>
+    <li>
+      <ColHeader label="Row Label"
+        index={{-1}}
+        hoverValue={{ hoverRow._rowLabel }} /></li>
     {{#cols:colNdx}}
       <li><ColHeader
         isDiscrete={{ type=='discrete' }}
@@ -21,7 +37,7 @@
         max={{ cols[colNdx].max }}
         label={{ label }}
         index={{ colNdx }}
-        hoverValue={{ hoverValues[colNdx] }} /></li>
+        hoverValue={{ hoverRow._values[colNdx] }} /></li>
     {{/cols}}
   </ul>
 </div>

@@ -15,6 +15,9 @@ var ColHeader = require('./col-header');
 //
 var Manager = Ractive.extend({
   template: require('./templates/datacomb.hbs'),
+  partials: {
+    colFilter: require('./templates/col-filter.hbs')
+  },
   components: {
     ColHeader: ColHeader
   },
@@ -24,7 +27,9 @@ var Manager = Ractive.extend({
       sortDesc: false,
       focusOnHover: true,
       hideUnfocused: false,
-      hoverValues: []
+      filtersOpen: false,
+      hoverValues: [],
+      cols: []
     };
   }
 });
