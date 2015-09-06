@@ -30,11 +30,17 @@ describe('Data filtering', function() {
   it('returns a new array and leaves original array unmodified', function() {
     var result = dataFilter(sampleRows, this.filters);
     result.should.not.equal(sampleRows);
+    result.should.deep.equal(sampleRows);
     result.should.have.property('length');
   });
 
   //
-  it('preserves array order');
+  it('preserves array order', function() {
+    var result = dataFilter(sampleRows, this.filters);
+    result[0]._values[0].should.eq('a');
+    result[1]._values[0].should.eq('b');
+    result[2]._values[0].should.eq('c');
+  });
 
   //
   describe('Discrete columns', function() {
@@ -51,6 +57,7 @@ describe('Data filtering', function() {
     it('filters based on `gt`, `lt` bounds', function() {
       this.filters[2].gt = 0.5;
       var result = dataFilter(sampleRows, this.filters);
+      expect(result[0]._values[2]).to.eq(0.85);
       expect(result.length).to.eq(2);
     });
     it('is inclusive with bounds', function() {

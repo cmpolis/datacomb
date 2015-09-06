@@ -12,6 +12,7 @@ var _ = require('lodash');
 
 // local deps
 var dataParser = require('./data-parser');
+var dataFilter = require('./data-filter');
 var Manager = require('./manager');
 
 //
@@ -34,6 +35,7 @@ var Datacomb = function(opts) {
   this.initManager();
   this.initTable();
 };
+
 //
 //
 
@@ -49,8 +51,8 @@ Datacomb.prototype.initManager = function() {
     }
   });
 
-  this.manager.observe('sortColNdx sortDesc', this.applySort, { init: false });
-  this.manager.observe('filters.*', this.applyFilters, { init: false });
+  // this.manager.observe('sortColNdx sortDesc', this.applySort.bind(this), { init: false });
+  this.manager.observe('filters', this.applyFilters.bind(this), { init: false });
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
@@ -72,10 +74,6 @@ Datacomb.prototype.initManager = function() {
     self.table.updateData(self.parsed.rows);
   });
 
-  // Check for filter state changes
-  this.manager.observe('filters.*', function() {
-    console.log('should apply filter', this.get('filters'));
-  }, { init: false });
 };
 
 //
@@ -200,7 +198,10 @@ Datacomb.prototype.applySort = function(columnNdx, sortDescending) {
 };
 
 //
-Datacomb.prototype.applyFilters = function(filters) { };
+Datacomb.prototype.applyFilters = function(filters) {
+  this.parsed.rows = dataFilter(this.parsed.rows, filters);
+  this.table.updateData(this.parsed.rows);
+};
 
 //
 module.exports = Datacomb;

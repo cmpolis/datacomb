@@ -7,7 +7,6 @@ var _ = require('lodash');
 
 //
 module.exports = function(rows, filters) {
-  //return rows.filter(function()
   return rows.filter(function(row) {
     return _.all(filters, function(filter, colNdx) {
       return filter.toggled ?
