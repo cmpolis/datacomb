@@ -4,6 +4,9 @@
     <button on-click='sort-by-col:{{index}},false'>▲</button>
     <button on-click='sort-by-col:{{index}},true'>▼</button>
   </h4>
-  <svg class='dc-ch-axis' height='20' width='{{width}}'>
-  </svg>
+  {{#if isDiscrete}}
+    <div class='disc-value'>{{hoverValue}}</div>
+  {{else}}
+    <svg class='dc-ch-axis' height='20' width='{{width}}'></svg>
+  {{/if}}
 </div>

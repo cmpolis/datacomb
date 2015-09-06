@@ -86,11 +86,10 @@ Datacomb.prototype.initTable = function() {
     updateRow: function(d, el) {
       el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
-      if(d.hovered || d.focused) {
-        el.setAttribute('dc-expand', '')
-      } else {
+      d.hovered ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
+      (d.hovered || d.focused) ?
+        el.setAttribute('dc-expand', '') :
         el.removeAttribute('dc-expand');
-      }
 
       for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
         if(self.parsed.columns[colNdx].type === 'discrete') {
@@ -118,12 +117,13 @@ Datacomb.prototype.initTable = function() {
     self.parsed.rows[self.currentHoverNdx].hovered = false;
     self.parsed.rows[node._dcndx].hovered = true;
     self.currentHoverNdx = node._dcndx;
+    self.manager.set('hoverValues', self.parsed.rows[node._dcndx]._values);
     self.table.updateData(self.parsed.rows);
 
     // Drag actions
-    // if(evt.buttons) {
-    //   self.parsed.rows[node._dcndx].focused = !self.parsed.rows[node._dcndx].focused;
-    // }
+    if(evt.buttons) {
+      self.parsed.rows[node._dcndx].focused = !self.parsed.rows[node._dcndx].focused;
+    }
   });
 
   // Drag interaction: focus multiple rows
@@ -162,9 +162,10 @@ Datacomb.prototype.initTable = function() {
     } else {
       for(var ndx = minNdx; ndx < maxNdx; ndx++) {
         console.log(ndx);
-        self.parsed.rows[ndx].focused = !self.parsed.rows[ndx].focused;
+        self.parsed.rows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
       }
     }
+    self.parsed.rows[self.currentHoverNdx].hovered = false;
     self.table.updateData(self.parsed.rows);
   };
 };

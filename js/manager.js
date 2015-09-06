@@ -21,7 +21,8 @@ var Manager = Ractive.extend({
   data: function() {
     return {
       sortColNdx: null,
-      sortDesc: false
+      sortDesc: false,
+      hoverValues: []
     };
   }
 });
