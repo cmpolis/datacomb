@@ -67,7 +67,7 @@ Datacomb.prototype.initTable = function() {
     el: this.el.querySelector('.dc-table'),
     data: this.parsed.rows,
     availableNodes: 1000,
-    heightFn: function(d) { return d.hovered ? 16 : 4; },
+    heightFn: function(d) { return (d.hovered || d.focused) ? 18 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
@@ -86,11 +86,12 @@ Datacomb.prototype.initTable = function() {
     updateRow: function(d, el) {
       el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
-      if(d.hovered) {
-        el.setAttribute('dc-hover', null);
+      if(d.hovered || d.focused) {
+        el.setAttribute('dc-expand', '')
       } else {
-        el.removeAttribute('dc-hover', null);
+        el.removeAttribute('dc-expand');
       }
+
       for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
         if(self.parsed.columns[colNdx].type === 'discrete') {
           el.childNodes[colNdx + 1].childNodes[0].textContent = d._values[colNdx];
@@ -109,7 +110,7 @@ Datacomb.prototype.initTable = function() {
 
   // Hover interaction: highlight row
   this.table.el.addEventListener('mouseover', function(evt) {
-    var node = evt.srcElement;
+    var node = evt.target;
     while(node._dcndx === undefined) {
       if(node.parentNode) { node = node.parentNode; }
       else { return; }
@@ -118,16 +119,11 @@ Datacomb.prototype.initTable = function() {
     self.parsed.rows[node._dcndx].hovered = true;
     self.currentHoverNdx = node._dcndx;
     self.table.updateData(self.parsed.rows);
-  });
 
-  // Click interaction: focus single row
-  this.table.el.addEventListener('click', function(evt) {
-    var node = evt.srcElement;
-    while(node._dcndx === undefined) {
-      if(node.parentNode) { node = node.parentNode; }
-      else { return; }
-    }
-    console.log('click row...', node._dcndx);
+    // Drag actions
+    // if(evt.buttons) {
+    //   self.parsed.rows[node._dcndx].focused = !self.parsed.rows[node._dcndx].focused;
+    // }
   });
 
   // Drag interaction: focus multiple rows
@@ -137,6 +133,7 @@ Datacomb.prototype.initTable = function() {
       if(node.parentNode) { node = node.parentNode; }
       else { return; }
     }
+    self.dragStartNdx = node._dcndx;
     console.log('start dragging...', node._dcndx);
   });
   this.table.el.addEventListener('mouseup', function(evt) {
@@ -145,8 +142,31 @@ Datacomb.prototype.initTable = function() {
       if(node.parentNode) { node = node.parentNode; }
       else { return; }
     }
-    console.log('done dragging...', node._dcndx);
+    self.focusRows(self.dragStartNdx, node._dcndx);
+    console.log('done dragging...', self.dragStartNdx, node._dcndx);
   });
+
+  //
+  this.focusRows = function(ndxA, ndxB) {
+    var minNdx = Math.min(ndxA, ndxB),
+        maxNdx = Math.max(ndxA, ndxB);
+
+    // Single row selection - toggle
+    if(minNdx === maxNdx) {
+      self.parsed.rows[minNdx].focused = !self.parsed.rows[minNdx].focused;
+
+    // Multiple row selection - more complicated logic???
+    //   all selected -> unselect
+    //   some selected -> select
+    //   none selected -> select
+    } else {
+      for(var ndx = minNdx; ndx < maxNdx; ndx++) {
+        console.log(ndx);
+        self.parsed.rows[ndx].focused = !self.parsed.rows[ndx].focused;
+      }
+    }
+    self.table.updateData(self.parsed.rows);
+  };
 };
 
 //
