@@ -29,8 +29,26 @@ var Manager = Ractive.extend({
       hideUnfocused: false,
       filtersOpen: false,
       hoverValues: [],
-      cols: []
+      cols: [],
+      filters: []
     };
+  },
+  onrender: function() {
+
+    // create filter options w/ new column definitions
+    this.observe('cols', function(cols) {
+      this.set('filters',
+        cols.map(function(col) {
+          if(col.type === 'discrete') {
+            var toggled = {}; // build new obj with T/F values
+            col.uniqValues.forEach(function(v) { toggled[v] = true; });
+            return { toggled: toggled };
+          } else {
+            return { gt: col.min, lt: col.max };
+          }
+        })
+      );
+    });
   }
 });
 

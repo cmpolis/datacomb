@@ -71,6 +71,11 @@ Datacomb.prototype.initManager = function() {
     self.parsed.rows.forEach(function(r) { r.focused = false; });
     self.table.updateData(self.parsed.rows);
   });
+
+  // Check for filter state changes
+  this.manager.observe('filters.*', function() {
+    console.log('should apply filter', this.get('filters'));
+  }, { init: false });
 };
 
 //

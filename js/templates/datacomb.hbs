@@ -6,7 +6,9 @@
     <label>
       <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused
     </label>
-    <button on-click='toggle("filtersOpen")'>Show Filters</button>
+    <button on-click='toggle("filtersOpen")'>
+      {{#if filtersOpen}}Hide Filters{{else}}Show Filters{{/if}}
+    </button>
     <button>Summary Statistics</button>
     <button>Histograms</button>
     <button on-click='focus-all'>Focus All</button>
@@ -19,7 +21,7 @@
     <ul class='dc-col-filters'>
       <li>Filters:</li>
       {{#cols:colNdx}}
-        <li>{{>colFilter}}</li>
+      <li {{#if type==='discrete'}}discrete{{/if}}>{{>colFilter}}</li>
       {{/cols}}
     </ul>
   {{/if}}

@@ -1,1 +1,17 @@
-Filter on {{ label }} zzz foo
+
+{{#if type === 'discrete' }}
+  <ul class='toggle-list'>
+  {{#uniqValues:valNdx}}
+    <li>
+      <input type='checkbox' checked={{filters[colNdx].toggled[.]}} /> {{ . }}
+    </li>
+  {{/uniqValues}}
+  </ul>
+
+{{else}}
+  <div class='filter-text'>
+    <input type='text' value={{ filters[colNdx].gt }} />
+    to
+    <input type='text' value={{ filters[colNdx].lt }} />
+  </div>
+{{/if}}

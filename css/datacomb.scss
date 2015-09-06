@@ -104,6 +104,26 @@ body { height: 100%; }
 }
 .dc-col-filters {
   bottom: 40px;
+  ul.toggle-list {
+    position: absolute;
+    top: 40px;
+    height: 200px;
+    width: $cellWidth;
+    font-weight: 400;
+    padding: 0 10px;
+    background: #EEE;
+    overflow-y: scroll;
+    z-index: 100;
+    li {
+      padding: 2px 0;
+    }
+  }
+  .filter-text {
+    input {
+      width: 50px;
+      display: inline-block;
+    }
+  }
 }
 
 // Row labels
