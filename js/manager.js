@@ -21,6 +21,8 @@ var Manager = Ractive.extend({
   components: {
     ColHeader: ColHeader
   },
+
+  //
   data: function() {
     return {
       sortColNdx: null,
@@ -30,9 +32,19 @@ var Manager = Ractive.extend({
       filtersOpen: false,
       hoverValues: [],
       cols: [],
-      filters: []
+      filters: [],
+      groupByColNdx: -1
     };
   },
+
+  //
+  computed: {
+    discreteCols: function() {
+      return _.where(this.get('cols'), { type: 'discrete' });
+    }
+  },
+
+  //
   onrender: function() {
 
     // create filter options w/ new column definitions

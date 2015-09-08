@@ -29,6 +29,7 @@ var Datacomb = function(opts) {
   for(var key in opts) { this[key] = opts[key]; }
 
   //
+  this.groupByColNdx = -1;
   this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
   this.allRows = this.parsed.rows;
   this.pipelinedRows = this.allRows;
@@ -60,6 +61,9 @@ Datacomb.prototype.initManager = function() {
       self.allRows[self.currentHoverNdx].hovered = false;
       self.table.updateData(self.getRows());
     }
+  }, { init: false });
+  this.manager.observe('groupByColNdx', function(colNdx) {
+    self.table.updateData(self.getRows({ groupByColNdx: colNdx }));
   }, { init: false });
   this.manager.observe('hideUnfocused', function(shouldHide) {
     self.table.updateData(self.getRows({ hideUnfocused: shouldHide }));
@@ -190,6 +194,7 @@ Datacomb.prototype.initTable = function() {
 
 // Run data through pipeline if neccesary: sort -> filter -> group -> ...
 Datacomb.prototype.getRows = function(opts) {
+  var self = this;
 
   // Something changed, run data through pipeline...
   if(opts) {
@@ -199,8 +204,18 @@ Datacomb.prototype.getRows = function(opts) {
       this.allRows = _.sortBy(this.allRows, function(d) {
         return d._values[opts.sort.colNdx] * (opts.sort.desc ? -1 : 1);
       });
-      this.allRows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
     }
+
+    // groupBy...
+    if(opts.groupByColNdx !== undefined) { this.groupByColNdx = opts.groupByColNdx; }
+    if(this.groupByColNdx !== -1) {
+      this.allRows = opts.sort ?
+        _.sortByOrder(this.allRows,
+          ['_values.'+this.groupByColNdx, '_values.'+opts.sort.colNdx],
+          [true, opts.sort.desc]) :
+        _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
+    }
+    this.allRows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
 
     // filter...
     this.filters = opts.filters || this.filters;
@@ -210,9 +225,6 @@ Datacomb.prototype.getRows = function(opts) {
     if(opts.hideUnfocused) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
     }
-
-    // groupBy...
-
   }
   return this.pipelinedRows;
 };

@@ -13,6 +13,13 @@
     <button>Histograms</button>
     <button on-click='focus-all'>Focus All</button>
     <button on-click='unfocus-all'>Unfocus All</button>
+
+    <select value={{groupByColNdx}}>
+      <option value='-1'>None</option>
+      {{#discreteCols}}
+        <option value={{ndx}}>{{label}}</option>
+      {{/discreteCols}}
+    </select>
   </div>
 
 
