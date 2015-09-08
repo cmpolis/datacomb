@@ -62,7 +62,7 @@ Datacomb.prototype.initManager = function() {
     }
   }, { init: false });
   this.manager.observe('hideUnfocused', function(shouldHide) {
-    //
+    self.table.updateData(self.getRows({ hideUnfocused: shouldHide }));
   }, { init: false });
   this.manager.on('focus-all', function(evt) {
     self.allRows.forEach(function(r) { r.focused = true; });
@@ -205,6 +205,11 @@ Datacomb.prototype.getRows = function(opts) {
     // filter...
     this.filters = opts.filters || this.filters;
     this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
+
+    // `hide unfocused`
+    if(opts.hideUnfocused) {
+      this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
+    }
 
     // groupBy...
 
