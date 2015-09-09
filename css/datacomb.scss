@@ -10,6 +10,10 @@ $transition: 300ms ease-in-out;
 html { height: 100%; }
 body { height: 100%; }
 .datacomb {
+
+  // imports
+  @import 'range-slider';
+
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -42,6 +46,10 @@ body { height: 100%; }
     transition: all $transition;
     &[filtering] {
       flex: 0 1 120px;
+      h4 {
+        top: -55px;
+        position: absolute;
+      }
     }
   }
   .dc-table {
@@ -106,7 +114,7 @@ body { height: 100%; }
   bottom: 40px;
   ul.toggle-list {
     position: absolute;
-    top: 40px;
+    top: 0;
     height: 200px;
     width: $cellWidth;
     font-weight: 400;

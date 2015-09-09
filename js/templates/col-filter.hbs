@@ -14,4 +14,11 @@
     to
     <input type='text' value={{ filters[colNdx].lt }} />
   </div>
+  <RangeSlider
+    width=160
+    lowerBound={{cols[colNdx].min}}
+    upperBound={{cols[colNdx].max}}
+    lower={{filters[colNdx].gt}}
+    upper={{filters[colNdx].lt}}
+    step={{ (cols[colNdx].max / cols[colNdx].min) / 100}} />
 {{/if}}

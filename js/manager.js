@@ -11,6 +11,7 @@ var d3 = require('d3');
 
 //
 var ColHeader = require('./col-header');
+var RangeSlider = require('./range-slider');
 
 //
 var Manager = Ractive.extend({
@@ -19,7 +20,8 @@ var Manager = Ractive.extend({
     colFilter: require('./templates/col-filter.hbs')
   },
   components: {
-    ColHeader: ColHeader
+    ColHeader: ColHeader,
+    RangeSlider: RangeSlider
   },
 
   //
