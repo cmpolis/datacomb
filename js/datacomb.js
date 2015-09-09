@@ -184,7 +184,9 @@ Datacomb.prototype.initTable = function() {
     //   none selected -> select
     } else {
       for(var ndx = minNdx; ndx < maxNdx; ndx++) {
-        self.allRows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
+        if(!self.allRows[ndx].filtered) {
+          self.allRows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
+        }
       }
     }
     self.allRows[self.currentHoverNdx].hovered = false;
@@ -215,7 +217,10 @@ Datacomb.prototype.getRows = function(opts) {
           [true, opts.sort.desc]) :
         _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
     }
-    this.allRows.forEach(function(d,ndx) { d.ndx = ndx; d.hovered = false; });
+    this.allRows.forEach(function(d,ndx) {
+      d.ndx = ndx;
+      d.hovered = false;
+      d.filtered = true; });
 
     // filter...
     this.filters = opts.filters || this.filters;
@@ -226,6 +231,7 @@ Datacomb.prototype.getRows = function(opts) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
     }
   }
+  this.pipelinedRows.forEach(function(d) { d.filtered = false; });
   return this.pipelinedRows;
 };
 
