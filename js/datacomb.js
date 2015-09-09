@@ -14,6 +14,7 @@ var _ = require('lodash');
 var dataParser = require('./data-parser');
 var dataFilter = require('./data-filter');
 var Manager = require('./manager');
+var palette = require('./palette').light12;
 
 //
 var defaults = { };
@@ -65,6 +66,9 @@ Datacomb.prototype.initManager = function() {
   this.manager.observe('groupByColNdx', function(colNdx) {
     self.table.updateData(self.getRows({ groupByColNdx: colNdx }));
   }, { init: false });
+  this.manager.observe('colorByColNdx', function(colNdx) {
+    self.table.updateData(self.getRows({ colorByColNdx: colNdx }));
+  }, { init: false });
   this.manager.observe('hideUnfocused', function(shouldHide) {
     self.table.updateData(self.getRows({ hideUnfocused: shouldHide }));
   }, { init: false });
@@ -95,6 +99,7 @@ Datacomb.prototype.initTable = function() {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
       node.classList.add('dc-row');
+      //node.setAttribute('dc-color-ndx', '');
       node._dcndx = d.ndx;
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
@@ -109,6 +114,7 @@ Datacomb.prototype.initTable = function() {
     updateRow: function(d, el) {
       el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
+      //d._colorNdx ? el.setAttribute('dc-color-ndx', d._colorNdx) : el.removeAttribute('dc-color-ndx');
       d.hovered ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
       (d.hovered || d.focused) ?
         el.setAttribute('dc-expand', '') :
@@ -120,6 +126,8 @@ Datacomb.prototype.initTable = function() {
 
         } else {
           el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
+          el.childNodes[colNdx+1].childNodes[0].style.backgroundColor =
+            (d._colorNdx || d._colorNdx === 0) ? palette[d._colorNdx % palette.length] : null;
           el.childNodes[colNdx + 1].childNodes[1].textContent = d._labels[colNdx];
 
         }
@@ -217,8 +225,13 @@ Datacomb.prototype.getRows = function(opts) {
           [true, opts.sort.desc]) :
         _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
     }
-    this.allRows.forEach(function(d,ndx) {
+
+    // colorBy...
+    if(opts.colorByColNdx !== undefined) { this.colorByColNdx = opts.colorByColNdx; }
+
+    this.allRows.forEach(function(d, ndx) {
       d.ndx = ndx;
+      d._colorNdx = self.colorByColNdx !== -1 ? d._discreteNdx[self.colorByColNdx] : null;
       d.hovered = false;
       d.filtered = true; });
 

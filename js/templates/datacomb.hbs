@@ -14,7 +14,16 @@
     <button on-click='focus-all'>Focus All</button>
     <button on-click='unfocus-all'>Unfocus All</button>
 
+    <label>Group By: </label>
     <select value={{groupByColNdx}}>
+      <option value='-1'>None</option>
+      {{#discreteCols}}
+        <option value={{ndx}}>{{label}}</option>
+      {{/discreteCols}}
+    </select>
+
+    <label>Color By: </label>
+    <select value={{colorByColNdx}}>
       <option value='-1'>None</option>
       {{#discreteCols}}
         <option value={{ndx}}>{{label}}</option>

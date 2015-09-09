@@ -2,10 +2,16 @@
 //
 //
 
+@import 'data-colors';
+
 // Size and position
 $cellWidth: 160px;
 $cellRightMargin: 10px;
 $transition: 300ms ease-in-out;
+
+//
+$lightBlue: #5BA7EF;
+$darkBlue: #1166B7;
 
 html { height: 100%; }
 body { height: 100%; }
@@ -36,6 +42,10 @@ body { height: 100%; }
     &:hover {
       color: #999;
     }
+  }
+
+  input[type="checkbox"] {
+    margin-right: 4px;
   }
 
   .dc-header {
@@ -70,9 +80,9 @@ body { height: 100%; }
     }
     &[dc-hover] {
       font-weight: 700;
-      color: #01F;
+      color: $darkBlue;
       .dc-bar {
-        background: #01F !important;
+        background: $darkBlue !important;
       }
     }
   }
@@ -155,7 +165,7 @@ body { height: 100%; }
 .dc-row[dc-expand] .dc-datacell {
   .dc-cont-val { display: block; }
   .dc-bar {
-    background: red;
+    background: $lightBlue;
   }
 }
 

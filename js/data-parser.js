@@ -44,7 +44,7 @@ module.exports = function(rows, columns, labelAccessor) {
   //
   var value, widths, values, labels;
   var parsedRows = rows.map(function(row, ndx) {
-    widths = []; values = []; labels = [];
+    widths = []; values = []; labels = []; discreteNdx = [];
 
     parsedColumns.forEach(function(col, colNdx) {
       value = _.isString(col.accessor) ? row[col.accessor] : col.accessor(row, ndx);
@@ -52,13 +52,18 @@ module.exports = function(rows, columns, labelAccessor) {
       values[colNdx] = value;
       widths[colNdx] = (col.type === 'discrete') ? 0 : col.widthFn(value);
       labels[colNdx] = col.format ? col.format(value) : value;
+      if(col.type === 'discrete') {
+        discreteNdx[colNdx] = col.uniqValues.indexOf(value);
+      }
     });
     return _.extend(row, {
       ndx: ndx,
       _values: values,
       _widths: widths,
       _labels: labels,
-      _rowLabel: labelAccessor(row, ndx)
+      _discreteNdx: discreteNdx,
+      _rowLabel: labelAccessor(row, ndx),
+      _colorNdx: ''
     });
   });
 

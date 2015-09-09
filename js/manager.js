@@ -35,7 +35,8 @@ var Manager = Ractive.extend({
       hoverValues: [],
       cols: [],
       filters: [],
-      groupByColNdx: -1
+      groupByColNdx: -1,
+      colorByColNdx: -1
     };
   },
 
