@@ -19,7 +19,7 @@ An interactive tool for exploring large, tabular datasets.
   * :x: histograms
   * :x: summary statistics
   * :thumbsup: grouping (by discrete dimensions)
-  * :x: coloring (by discrete dimensions)
+  * :thumbsup: coloring (by discrete dimensions)
 * v2
   * :x: expandable(full screen?) scatter plots
   * :x: regressions in scatter plots
