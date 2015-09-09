@@ -18,7 +18,7 @@ An interactive tool for exploring large, tabular datasets.
   * :x: scatter plots - canvas or svg?
   * :x: histograms
   * :x: summary statistics
-  * :x: grouping (by discrete dimensions)
+  * :thumbsup: grouping (by discrete dimensions)
   * :x: coloring (by discrete dimensions)
 * v2
   * :x: expandable(full screen?) scatter plots
