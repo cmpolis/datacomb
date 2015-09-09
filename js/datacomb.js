@@ -227,8 +227,9 @@ Datacomb.prototype.getRows = function(opts) {
     this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
 
     // `hide unfocused`
-    if(opts.hideUnfocused) {
+    if(opts.hideUnfocused || this.hideUnfocused) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
+      this.hideUnfocused = true;
     }
   }
   this.pipelinedRows.forEach(function(d) { d.filtered = false; });
