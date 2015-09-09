@@ -13,13 +13,13 @@ An interactive tool for exploring large, tabular datasets.
   * :thumbsup: hover interaction
   * :thumbsup: click interaction
   * :thumbsup: drag interaction
-  * :x: filtering
+  * :thumbsup: filtering
   * :thumbsup: sorting
   * :x: scatter plots - canvas or svg?
   * :x: histograms
   * :x: summary statistics
   * :thumbsup: grouping (by discrete dimensions)
-  * :x: coloring (by discrete dimensions)
+  * :thumbsup: coloring (by discrete dimensions)
 * v2
   * :x: expandable(full screen?) scatter plots
   * :x: regressions in scatter plots
