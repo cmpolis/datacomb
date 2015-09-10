@@ -235,12 +235,17 @@ Datacomb.prototype.getRows = function(opts) {
       d.hovered = false;
       d.filtered = true; });
 
+    console.log('2', this.allRows.length);
+
     // filter...
     this.filters = opts.filters || this.filters;
     this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
 
+    console.log('3', this.pipelinedRows.length);
+
     // `hide unfocused`
-    if(opts.hideUnfocused || this.hideUnfocused) {
+    if(opts.hideUnfocused !== undefined) { this.hideUnfocused = opts.hideUnfocused; }
+    if(this.hideUnfocused) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
       this.hideUnfocused = true;
     }
