@@ -54,11 +54,22 @@ body { height: 100%; }
     align-self: stretch;
     position: relative;
     transition: all $transition;
-    &[filtering] {
+    &[filtering], &[stats-open] {
       flex: 0 1 120px;
       h4 {
         top: -55px;
         position: absolute;
+      }
+    }
+    &[stats-open] {
+      flex: 0 1 130px;
+      h4 { top: -80px; }
+    }
+    &[filtering][stats-open] {
+      flex: 0 1 180px;
+      h4 { top: -120px; }
+      .toggle-list {
+        height: 68px;
       }
     }
   }
@@ -95,7 +106,7 @@ body { height: 100%; }
 }
 
 // Column headers
-.dc-col-headers, .dc-col-filters {
+.dc-col-headers, .dc-col-filters, .dc-col-stats {
   position: absolute;
   padding: 2px 20px;
   > li {
@@ -120,7 +131,7 @@ body { height: 100%; }
 .dc-col-headers {
   bottom: 0;
 }
-.dc-col-filters {
+.dc-col-filters, .dc-col-stats {
   bottom: 40px;
   ul.toggle-list {
     position: absolute;
@@ -142,6 +153,16 @@ body { height: 100%; }
       display: inline-block;
     }
   }
+}
+[filtering] .dc-col-stats {
+  bottom: 64px;
+}
+.dc-col-stats {
+  bottom: 20px;
+}
+.stat-list {
+  text-align: right;
+  font-weight: 400;
 }
 
 // Row labels

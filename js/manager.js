@@ -17,7 +17,8 @@ var RangeSlider = require('./range-slider');
 var Manager = Ractive.extend({
   template: require('./templates/datacomb.hbs'),
   partials: {
-    colFilter: require('./templates/col-filter.hbs')
+    colFilter: require('./templates/col-filter.hbs'),
+    summaryStats: require('./templates/summary-stats.hbs')
   },
   components: {
     ColHeader: ColHeader,
@@ -32,6 +33,7 @@ var Manager = Ractive.extend({
       focusOnHover: true,
       hideUnfocused: false,
       filtersOpen: false,
+      statsOpen: false,
       hoverValues: [],
       cols: [],
       filters: [],

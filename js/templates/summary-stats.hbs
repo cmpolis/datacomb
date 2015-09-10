@@ -1,0 +1,18 @@
+{{#if type === 'discrete' }}
+  <ul class='toggle-list'>
+  {{#uniqValues:valNdx}}
+    <li>
+      {{ label }}
+    </li>
+  {{/uniqValues}}
+  </ul>
+
+{{else}}
+  <ul class='stat-list'>
+    <li>Min: {{ min.toFixed(2) }}</li>
+    <li>Max: {{ max.toFixed(2) }}</li>
+    <li>Mean: {{ mean.toFixed(2) }}</li>
+    <li>Med: {{ median.toFixed(2) }}</li>
+    <li>Std Dev: {{ sd.toFixed(2) }}</li>
+  </ul>
+{{/if}}
