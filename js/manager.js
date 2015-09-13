@@ -12,7 +12,6 @@ var d3 = require('d3');
 //
 var ColHeader = require('./col-header');
 var RangeSlider = require('./range-slider');
-var ScatterPlot = require('./scatter-plot');
 
 //
 var Manager = Ractive.extend({
@@ -23,8 +22,7 @@ var Manager = Ractive.extend({
   },
   components: {
     ColHeader: ColHeader,
-    RangeSlider: RangeSlider,
-    ScatterPlot: ScatterPlot
+    RangeSlider: RangeSlider
   },
 
   //
