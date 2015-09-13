@@ -57,6 +57,11 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
+  this.manager.on('*.show-scatter-plots', function(evt, colNdx) {
+    // self.applySort(colNdx, descOrder);
+    console.log('update scatter plots...', colNdx);
+    this.set('scatterPlotNdx', colNdx);
+  });
   this.manager.observe('focusOnHover', function(shouldFocus) {
     if(!shouldFocus) {
       self.allRows[self.currentHoverNdx].hovered = false;

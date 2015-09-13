@@ -33,9 +33,22 @@
     </select>
   </div>
 
-  <ScatterPlot
-    height=160
-    width=160 />
+<!--
+  {{#if scatterPlotNdx !== -1}}
+    <ul class='dc-col-filters'>
+      <li>Scatter Plots for {{ cols[scatterPlotNdx].label }}</li>
+      {{#cols:colNdx}}
+      <li>
+        <ScatterPlot
+          xNdx=4
+          yNdx=5
+          height=160
+          width=160 />
+      </li>
+      {{/cols}}
+    </ul>
+  {{/if}}
+-->
 
 
   <!-- Column filters: max/min text inputs + slider (continous) or checkboxes (discrete) -->
