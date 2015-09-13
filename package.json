@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/cmpolis/datacomb",
   "dependencies": {
+    "autoprefixer": "^6.0.2",
     "browserify": "^11.0.1",
     "canvas-dpi-scaler": "0.0.3",
     "chai": "^3.2.0",
@@ -32,6 +33,7 @@
     "lodash": "^3.10.1",
     "mocha": "^2.2.5",
     "node-sass": "^3.2.0",
+    "postcss-cli": "^2.1.0",
     "ractive": "^0.7.3",
     "serve": "^1.4.0",
     "sinon": "^1.15.4",

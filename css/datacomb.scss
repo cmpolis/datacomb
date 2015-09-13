@@ -16,6 +16,7 @@ $darkBlue: #1166B7;
 html { height: 100%; }
 body { height: 100%; }
 
+.datacomb { height: 100%; }
 .dc-container {
 
   // load imports to nest under .dc-container
@@ -31,6 +32,12 @@ body { height: 100%; }
 
   // disable selecting/highlighting (makes mouse actions more robust)
   * { user-select: none; }
+  // TODO: remove this, have autoprefixer be part of build process...
+  * {
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    -moz-user-select: none;
+  }
 
   // layout structure, three flex el's:
   //   top controls: fixed height
@@ -55,6 +62,7 @@ body { height: 100%; }
 
   // column headers
   .dc-col-headers {
+    padding-left: 24px;
     > li {
       display: inline-block;
       width: $cellWidth;
@@ -71,43 +79,65 @@ body { height: 100%; }
   }
 
   // table elements
-  .dc-disccell, .dc-datacell, .dc-rlabel {
-    display: inline-block;
-    width: $cellWidth;
-    margin-left: $cellRightMargin;
-    vertical-align: top;
-  }
-  // Row labels
-  .dc-rlabel {
-    font-weight: 700;
-    .dc-label { display: none; }
-  }
-  .dc-row[dc-expand] .dc-rlabel {
-    .dc-label { display: block; }
-  }
+  .dc-row {
+    height: 4px;
 
-  // Continuous columns (bars)
-  .dc-datacell {
-    .dc-cont-val { display: none; }
-    .dc-bar {
-      height: 3px;
-      background: #666;
-      border-left: 1px solid #333;
-    }
-  }
-  .dc-row[dc-expand] .dc-datacell {
-    .dc-cont-val { display: block; }
-    .dc-bar {
-      background: $lightBlue;
-    }
-  }
+    // all cells
+    .dc-cell {
+      display: inline-block;
+      width: $cellWidth;
+      margin-left: $cellRightMargin;
+      vertical-align: top;
 
-  // Discrete columns (colors)
-  .dc-disccell {
-    .dc-disc-val { display: none; }
-  }
-  .dc-row[dc-expand] .dc-disccell {
-    .dc-disc-val { display: block; }
+      // row labels
+      &[coltype=label] {
+        font-weight: 700;
+        .dc-label { display: none; }
+      }
+
+      // continuous columns (bars)
+      &[coltype=cont] {
+        .dc-cont-val { display: none; }
+        .dc-bar {
+          height: 3px;
+          background: #666;
+          border-left: 1px solid #333;
+        }
+      }
+
+      // discrete columns (nothing or text)
+      &[coltype=disc] {
+        .dc-disc-val { display: none; }
+      }
+    }
+
+    &[dc-expand] {
+      border-bottom: 1px solid black;
+      border-top: 1px solid black;
+      padding-top: 1px;
+      height: 18px;
+
+
+      [coltype=label] {
+        .dc-label { display: block; }
+      }
+      [coltype=cont] {
+        .dc-cont-val { display: block; }
+        .dc-bar {
+          background: $lightBlue;
+        }
+      }
+      [coltype=disc] {
+        .dc-disc-val { display: block; }
+      }
+    }
+    &[dc-hover] {
+      font-weight: 700;
+      color: $darkBlue;
+      .dc-bar {
+        background: $darkBlue !important;
+      }
+    }
   }
 
   // common svg styling
