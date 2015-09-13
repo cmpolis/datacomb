@@ -28,9 +28,9 @@ var ColHeader = Ractive.extend({
 
     if(!this.get('isDiscrete')) {
       // init scatter plot
-      this.canvas = this.el.querySelector('canvas');
-      this.context = this.canvas.getContext('2d');
-      CanvasDPIScaler(this.canvas, this.context);
+      // this.canvas = this.el.querySelector('canvas');
+      // this.context = this.canvas.getContext('2d');
+      // CanvasDPIScaler(this.canvas, this.context);
 
       // build svg axis
       this.scale = d3.scale.linear();

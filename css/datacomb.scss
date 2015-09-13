@@ -15,6 +15,118 @@ $darkBlue: #1166B7;
 
 html { height: 100%; }
 body { height: 100%; }
+
+.dc-container {
+
+  // load imports to nest under .dc-container
+  @import 'range-slider';
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-content: stretch;
+  align-items: flex-start;
+
+  // disable selecting/highlighting (makes mouse actions more robust)
+  * { user-select: none; }
+
+  // layout structure, three flex el's:
+  //   top controls: fixed height
+  //   col-headers:  grow based on content
+  //   table:        fill remaining height
+  .dc-top-controls {
+    flex: 0 1 20px;
+    order: 0;
+    align-self: stretch;
+  }
+  .dc-col-headers {
+    flex: 0 1 auto;
+    order: 0;
+    align-self: stretch;
+  }
+  .dc-table {
+    padding: 0 20px;
+    order: 0;
+    flex: 1 1 auto;
+    align-self: stretch;
+  }
+
+  // column headers
+  .dc-col-headers {
+    > li {
+      display: inline-block;
+      width: $cellWidth;
+      margin-right: $cellRightMargin;
+      font-weight: bold;
+    }
+    h4 { padding-left: 4px; }
+    svg {
+      .axis-hover-line {
+        stroke: rgba(30, 79, 255, 0.6);
+        stroke-width: 2px;
+      }
+    }
+  }
+
+  // table elements
+  .dc-disccell, .dc-datacell, .dc-rlabel {
+    display: inline-block;
+    width: $cellWidth;
+    margin-left: $cellRightMargin;
+    vertical-align: top;
+  }
+  // Row labels
+  .dc-rlabel {
+    font-weight: 700;
+    .dc-label { display: none; }
+  }
+  .dc-row[dc-expand] .dc-rlabel {
+    .dc-label { display: block; }
+  }
+
+  // Continuous columns (bars)
+  .dc-datacell {
+    .dc-cont-val { display: none; }
+    .dc-bar {
+      height: 3px;
+      background: #666;
+      border-left: 1px solid #333;
+    }
+  }
+  .dc-row[dc-expand] .dc-datacell {
+    .dc-cont-val { display: block; }
+    .dc-bar {
+      background: $lightBlue;
+    }
+  }
+
+  // Discrete columns (colors)
+  .dc-disccell {
+    .dc-disc-val { display: none; }
+  }
+  .dc-row[dc-expand] .dc-disccell {
+    .dc-disc-val { display: block; }
+  }
+
+  // common svg styling
+  svg {
+    overflow: visible;
+
+    line, path {
+      fill: none;
+      stroke: black;
+    }
+    text {
+      font-weight: normal;
+      font-size: 12px;
+    }
+  }
+
+}
+
+/*
 .datacomb {
 
   // imports
@@ -213,3 +325,4 @@ body { height: 100%; }
     font-size: 12px;
   }
 }
+*/

@@ -1,5 +1,17 @@
-<div class='dc-header' {{#if filtersOpen}}filtering{{/if}} {{#if statsOpen}}stats-open{{/if}}>
-  <div>
+<!--
+Top level template and DOM structure for Datacomb.
+Copytight Chris Polis, 2015. All rights reserved.
+-->
+
+{{#partial discreteColumnOptions}}
+  <option value='-1'>None</option>
+  {{#discreteCols}}
+    <option value={{ndx}}>{{label}}</option>
+  {{/discreteCols}}
+{{/partial}}
+
+<div class='dc-container'>
+  <div class='dc-top-controls'>
     <label>
       <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover
     </label>
@@ -18,22 +30,38 @@
 
     <label>Group By: </label>
     <select value={{groupByColNdx}}>
-      <option value='-1'>None</option>
-      {{#discreteCols}}
-        <option value={{ndx}}>{{label}}</option>
-      {{/discreteCols}}
+      {{>discreteColumnOptions}}
     </select>
 
     <label>Color By: </label>
     <select value={{colorByColNdx}}>
-      <option value='-1'>None</option>
-      {{#discreteCols}}
-        <option value={{ndx}}>{{label}}</option>
-      {{/discreteCols}}
+      {{>discreteColumnOptions}}
     </select>
   </div>
 
+  <ul class='dc-col-headers'>
+    <li>
+      <ColHeader label="Row Label"
+        index={{-1}}
+        hoverValue={{ hoverRow._rowLabel }} /></li>
+    {{#cols:colNdx}}
+      <li><ColHeader
+        isDiscrete={{ type=='discrete' }}
+        min={{ cols[colNdx].min }}
+        max={{ cols[colNdx].max }}
+        label={{ label }}
+        index={{ colNdx }}
+        hoverValue={{ hoverRow._values[colNdx] }} /></li>
+    {{/cols}}
+  </ul>
+
+  <div class='dc-table'></div>
+</div>
+
 <!--
+<div class='dc-header' {{#if filtersOpen}}filtering{{/if}} {{#if statsOpen}}stats-open{{/if}}>
+  <div>
+
   {{#if scatterPlotNdx !== -1}}
     <ul class='dc-col-filters'>
       <li>Scatter Plots for {{ cols[scatterPlotNdx].label }}</li>
@@ -51,7 +79,7 @@
 -->
 
 
-  <!-- Column filters: max/min text inputs + slider (continous) or checkboxes (discrete) -->
+  <!-- Column filters: max/min text inputs + slider (continous) or checkboxes (discrete)
   {{#if filtersOpen}}
     <ul class='dc-col-filters'>
       <li>Filters:</li>
@@ -60,8 +88,9 @@
       {{/cols}}
     </ul>
   {{/if}}
+  -->
 
-  <!-- Column summary statistics: mean, median, std dev, min, max, etc... -->
+  <!-- Column summary statistics: mean, median, std dev, min, max, etc...
   {{#if statsOpen}}
     <ul class='dc-col-stats'>
       <li>Summary Stats</li>
@@ -70,8 +99,9 @@
       {{/cols}}
     </ul>
   {{/if}}
+  -->
 
-  <!-- Column headers: label + controls + axis -->
+  <!-- Column headers: label + controls + axis
   <ul class='dc-col-headers'>
     <li>
       <ColHeader label="Row Label"
@@ -88,4 +118,4 @@
     {{/cols}}
   </ul>
 </div>
-<div class='dc-table'></div>
+-->
