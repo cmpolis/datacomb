@@ -203,7 +203,7 @@ Datacomb.prototype.initTable = function() {
       }
     }
     self.allRows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.getRows());
+    self.table.updateData(self.getRows({ force: true }));
   };
 };
 
@@ -248,7 +248,6 @@ Datacomb.prototype.getRows = function(opts) {
     if(opts.hideUnfocused !== undefined) { this.hideUnfocused = opts.hideUnfocused; }
     if(this.hideUnfocused) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
-      this.hideUnfocused = true;
     }
   }
   this.pipelinedRows.forEach(function(d) { d.filtered = false; });
