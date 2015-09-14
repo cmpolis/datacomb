@@ -218,9 +218,9 @@ Datacomb.prototype.getRows = function(opts) {
 
     // sort...
     if(opts.sort) {
-      this.allRows = _.sortBy(this.allRows, function(d) {
-        return d._values[opts.sort.colNdx] * (opts.sort.desc ? -1 : 1);
-      });
+      this.allRows = _.sortBy(this.allRows,
+        opts.sort.colNdx === -1 ? '_rowLabel' : '_values.'+opts.sort.colNdx);
+      opts.sort.desc && this.allRows.reverse();
     }
 
     // groupBy...
