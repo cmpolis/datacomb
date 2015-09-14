@@ -53,8 +53,8 @@ var Manager = Ractive.extend({
   //
   onrender: function() {
 
-    // create filter options w/ new column definitions
-    this.observe('cols', function(cols) {
+    // reset filters back to initial state
+    this.resetFilters = function(cols) {
       this.set('filters',
         cols.map(function(col) {
           if(col.type === 'discrete') {
@@ -66,6 +66,10 @@ var Manager = Ractive.extend({
           }
         })
       );
+    };
+    this.observe('cols', this.resetFilters);
+    this.on('*.reset-filters', function() {
+      this.resetFilters(this.get('cols'));
     });
   }
 });

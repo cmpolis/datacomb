@@ -24,7 +24,7 @@
   <!-- filters -->
   <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>
     {{#if index === -1}}
-      <button class='dc-btn dc-warn'>
+      <button class='dc-btn dc-warn' on-click='reset-filters'>
         <i class='fa fa-close'></i>
         Reset filters
       </button>
