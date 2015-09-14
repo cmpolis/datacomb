@@ -21,7 +21,9 @@ var ColHeader = Ractive.extend({
       min: 0,
       max: 1,
       width: 160,
-      hoverValue: 0
+      hoverValue: 0,
+      filtersOpen: false,
+      statsOpen: false
     };
   },
   onrender: function() {

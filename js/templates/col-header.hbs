@@ -2,14 +2,14 @@
   <h4>
     {{label}}
     <button on-click='sort-by-col:{{index}},false'>
-      {{#if type==='discrete' || index===-1}}
+      {{#if isDiscrete || index === -1}}
         <i class='fa fa-sort-alpha-asc'></i>
       {{else}}
         <i class='fa fa-sort-amount-asc'></i>
       {{/if}}
     </button>
     <button on-click='sort-by-col:{{index}},true'>
-      {{#if type=='discrete'}}
+      {{#if isDiscrete }}
         <i class='fa fa-sort-alpha-desc'></i>
       {{else}}
         <i class='fa fa-sort-amount-desc'></i>
@@ -19,10 +19,63 @@
         <i class='fa fa-circle-o'></i>
     </button>
   </h4>
+
+
+  <!-- filters -->
+  <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>
+    {{#if isDiscrete }}
+      <ul class='scroll-list'>
+      {{#uniqValues:valNdx}}
+        <li>
+          <input type='checkbox' checked={{filter.toggled[.]}} /> {{ . }}
+        </li>
+      {{/uniqValues}}
+      </ul>
+
+    {{else}}
+      <div class='filter-text'>
+        <input type='text' value={{ filter.gt }} />
+        to
+        <input type='text' value={{ filter.lt }} />
+      </div>
+      <RangeSlider
+        width=160
+        lowerBound={{min}}
+        upperBound={{max}}
+        lower={{filter.gt}}
+        upper={{filter.lt}}
+        step={{ (max / min) / 100}} />
+    {{/if}}
+  </div>
+
+  <!-- summary stats -->
+  <div {{#if !statsOpen }}hidden{{/if}}>
+    {{#if isDiscrete }}
+      <ul class='scroll-list'>
+      {{#uniqValues:valNdx}}
+        <li>
+          {{ label }}
+        </li>
+      {{/uniqValues}}
+      </ul>
+    {{else}}
+      <ul class='stat-list'>
+        <li>Min: <b>{{ min.toFixed(2) }}</b></li>
+        <li>Max: <b>{{ max.toFixed(2) }}</b></li>
+        <li>Mean: <b>{{ mean.toFixed(2) }}</b></li>
+        <li>Med: <b>{{ median.toFixed(2) }}</b></li>
+        <li>Std Dev: <b>{{ sd.toFixed(2) }}</b></li>
+      </ul>
+    {{/if}}
+  </div>
+
+
+  <!-- axis -->
   {{#if isDiscrete}}
     <div class='disc-value'>{{hoverValue}}</div>
   {{else}}
     <!-- <canvas class='dc-col-scatter' width={{width}} height=160></canvas>-->
     <svg class='dc-ch-axis' height='22' width='{{width}}'></svg>
   {{/if}}
+
 </div>

@@ -22,15 +22,26 @@ Copytight Chris Polis, 2015. All rights reserved.
     </label>
     <button on-click='toggle("filtersOpen")'
             {{#if filtersOpen}}opened{{/if}} >
+      <i class='fa fa-filter'></i>
       {{#if filtersOpen}}Hide Filters{{else}}Show Filters{{/if}}
     </button>
     <button on-click='toggle("statsOpen")'
             {{#if statsOpen}}opened{{/if}} >
+      <i class='fa fa-list'></i>
       {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats
     </button>
-    <button>Histograms</button>
-    <button on-click='focus-all'>Focus All</button>
-    <button on-click='unfocus-all'>Unfocus All</button>
+    <button>
+      <i class='fa fa-bar-chart'></i>
+      Show Histograms
+    </button>
+    <button on-click='focus-all'>
+      <i class='fa fa-arrows-v'></i>
+      Focus All
+    </button>
+    <button on-click='unfocus-all'>
+      <i class='fa fa-minus'></i>
+      Unfocus All
+    </button>
 
     <label>Group By: </label>
     <select value={{groupByColNdx}}>
@@ -50,11 +61,14 @@ Copytight Chris Polis, 2015. All rights reserved.
         hoverValue={{ hoverRow._rowLabel }} /></li>
     {{#cols:colNdx}}
       <li><ColHeader
+        filtersOpen={{filtersOpen}}
+        statsOpen={{statsOpen}}
         isDiscrete={{ type=='discrete' }}
         min={{ cols[colNdx].min }}
         max={{ cols[colNdx].max }}
         label={{ label }}
         index={{ colNdx }}
+        filter={{ filters[colNdx] }}
         hoverValue={{ hoverRow._values[colNdx] }} /></li>
     {{/cols}}
   </ul>
