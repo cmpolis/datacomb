@@ -1,14 +1,28 @@
 <div class='dc-col-header' {{#if isDiscrete}}discrete{{/if}}>
   <h4>
     {{label}}
-    <button on-click='sort-by-col:{{index}},false'>▲</button>
-    <button on-click='sort-by-col:{{index}},true'>▼</button>
-    <button on-click='show-scatter-plots:{{index}},'>[SP]</button>
+    <button on-click='sort-by-col:{{index}},false'>
+      {{#if type==='discrete' || index===-1}}
+        <i class='fa fa-sort-alpha-asc'></i>
+      {{else}}
+        <i class='fa fa-sort-amount-asc'></i>
+      {{/if}}
+    </button>
+    <button on-click='sort-by-col:{{index}},true'>
+      {{#if type=='discrete'}}
+        <i class='fa fa-sort-alpha-desc'></i>
+      {{else}}
+        <i class='fa fa-sort-amount-desc'></i>
+      {{/if}}
+    </button>
+    <button on-click='show-scatter-plots:{{index}},'>
+        <i class='fa fa-circle-o'></i>
+    </button>
   </h4>
   {{#if isDiscrete}}
     <div class='disc-value'>{{hoverValue}}</div>
   {{else}}
     <!-- <canvas class='dc-col-scatter' width={{width}} height=160></canvas>-->
-    <svg class='dc-ch-axis' height='20' width='{{width}}'></svg>
+    <svg class='dc-ch-axis' height='22' width='{{width}}'></svg>
   {{/if}}
 </div>

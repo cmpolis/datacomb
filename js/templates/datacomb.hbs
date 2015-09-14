@@ -3,6 +3,8 @@ Top level template and DOM structure for Datacomb.
 Copytight Chris Polis, 2015. All rights reserved.
 -->
 
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
 {{#partial discreteColumnOptions}}
   <option value='-1'>None</option>
   {{#discreteCols}}
@@ -18,10 +20,12 @@ Copytight Chris Polis, 2015. All rights reserved.
     <label>
       <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused
     </label>
-    <button on-click='toggle("filtersOpen")'>
+    <button on-click='toggle("filtersOpen")'
+            {{#if filtersOpen}}opened{{/if}} >
       {{#if filtersOpen}}Hide Filters{{else}}Show Filters{{/if}}
     </button>
-    <button on-click='toggle("statsOpen")'>
+    <button on-click='toggle("statsOpen")'
+            {{#if statsOpen}}opened{{/if}} >
       {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats
     </button>
     <button>Histograms</button>

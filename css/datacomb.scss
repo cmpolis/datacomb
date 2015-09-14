@@ -16,6 +16,13 @@ $darkBlue: #1166B7;
 html { height: 100%; }
 body { height: 100%; }
 
+button {
+  font-family: 'Inconsolata', sans-serif;
+}
+input[type=checkbox] {
+  margin: 0 4px;
+}
+
 .datacomb { height: 100%; }
 .dc-container {
 
@@ -40,11 +47,11 @@ body { height: 100%; }
   }
 
   // layout structure, three flex el's:
-  //   top controls: fixed height
+  //   top controls: grow based on content
   //   col-headers:  grow based on content
   //   table:        fill remaining height
   .dc-top-controls {
-    flex: 0 1 20px;
+    flex: 0 1 auto;
     order: 0;
     align-self: stretch;
   }
@@ -60,6 +67,36 @@ body { height: 100%; }
     align-self: stretch;
   }
 
+  // top controls
+  .dc-top-controls {
+    padding-left: 8px;
+    border-bottom: 1px solid #999;
+
+    label {
+      font-weight: 700;
+    }
+
+    button {
+      padding: 2px 8px;
+      margin: 4px 0;
+      border-radius: 0;
+      background-color: $darkBlue;
+      color: white;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 12px;
+      transition: background-color 100ms ease-in-out;
+      &:hover {
+        background-color: $lightBlue;
+      }
+      &[opened] {
+        background-color: #C38C10;
+      }
+    }
+  }
+
   // column headers
   .dc-col-headers {
     padding-left: 24px;
@@ -68,8 +105,24 @@ body { height: 100%; }
       width: $cellWidth;
       margin-right: $cellRightMargin;
       font-weight: bold;
+      padding-top: 4px;
     }
     h4 { padding-left: 4px; }
+    .disc-value {
+      font-weight: 400;
+      padding-left: 4px;
+      padding-top: 9px;
+    }
+    button {
+      border: none;
+      outline: none;
+      background: none;
+      padding: 2px;
+      cursor: pointer;
+      &:hover {
+        color: $darkBlue;
+      }
+    }
     svg {
       .axis-hover-line {
         stroke: rgba(30, 79, 255, 0.6);
@@ -155,204 +208,3 @@ body { height: 100%; }
   }
 
 }
-
-/*
-.datacomb {
-
-  // imports
-  @import 'range-slider';
-
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  align-content: stretch;
-  align-items: flex-start;
-  * {
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-  }
-
-  button {
-    border: none;
-    outline: none;
-    background: none;
-    cursor: pointer;
-    &:hover {
-      color: #999;
-    }
-  }
-
-  input[type="checkbox"] {
-    margin-right: 4px;
-  }
-
-  .dc-header {
-    order: 0;
-    flex: 0 1 80px;
-    align-self: stretch;
-    position: relative;
-    transition: all $transition;
-    &[filtering], &[stats-open] {
-      flex: 0 1 120px;
-      h4 {
-        top: -55px;
-        position: absolute;
-      }
-    }
-    &[stats-open] {
-      flex: 0 1 130px;
-      h4 { top: -80px; }
-    }
-    &[filtering][stats-open] {
-      flex: 0 1 180px;
-      h4 { top: -120px; }
-      .toggle-list {
-        height: 68px;
-      }
-    }
-  }
-  .dc-table {
-    padding: 0 20px;
-    order: 0;
-    flex: 1 1 auto;
-    align-self: stretch;
-  }
-
-  //
-  .dc-row {
-    height: 4px;
-    &[dc-expand] {
-      border-bottom: 1px solid black;
-      border-top: 1px solid black;
-      padding-top: 1px;
-      height: 18px;
-    }
-    &[dc-hover] {
-      font-weight: 700;
-      color: $darkBlue;
-      .dc-bar {
-        background: $darkBlue !important;
-      }
-    }
-  }
-  .dc-disccell, .dc-datacell, .dc-rlabel {
-    display: inline-block;
-    width: $cellWidth;
-    margin-left: $cellRightMargin;
-    vertical-align: top;
-  }
-}
-
-// Column headers
-.dc-col-headers, .dc-col-filters, .dc-col-stats {
-  position: absolute;
-  padding: 2px 20px;
-  > li {
-    display: inline-block;
-    width: $cellWidth;
-    margin-right: $cellRightMargin;
-    font-weight: bold;
-  }
-  h4 { padding-left: 4px; }
-  svg {
-    .axis-hover-line {
-      stroke: rgba(30, 79, 255, 0.6);
-      stroke-width: 2px;
-    }
-  }
-  .disc-value {
-    font-weight: 400;
-    padding-left: 4px;
-    padding-top: 9px;
-  }
-}
-.dc-col-headers {
-  bottom: 0;
-}
-.dc-col-filters, .dc-col-stats {
-  bottom: 40px;
-  ul.toggle-list {
-    position: absolute;
-    top: 0;
-    height: 200px;
-    width: $cellWidth;
-    font-weight: 400;
-    padding: 0 10px;
-    background: #EEE;
-    overflow-y: scroll;
-    z-index: 100;
-    li {
-      padding: 2px 0;
-    }
-  }
-  .filter-text {
-    input {
-      width: 50px;
-      display: inline-block;
-    }
-  }
-}
-[filtering] .dc-col-stats {
-  bottom: 64px;
-}
-.dc-col-stats {
-  bottom: 20px;
-}
-.stat-list {
-  text-align: right;
-  font-weight: 400;
-}
-
-// Row labels
-.dc-rlabel {
-  font-weight: 700;
-  .dc-label { display: none; }
-}
-.dc-row[dc-expand] .dc-rlabel {
-  .dc-label { display: block; }
-}
-
-// Continuous columns (bars)
-.dc-datacell {
-  .dc-cont-val { display: none; }
-  .dc-bar {
-    height: 3px;
-    background: #666;
-    border-left: 1px solid #333;
-  }
-}
-.dc-row[dc-expand] .dc-datacell {
-  .dc-cont-val { display: block; }
-  .dc-bar {
-    background: $lightBlue;
-  }
-}
-
-// Discrete columns (colors)
-.dc-disccell {
-  .dc-disc-val { display: none; }
-}
-.dc-row[dc-expand] .dc-disccell {
-  .dc-disc-val { display: block; }
-}
-
-// Axis
-.dc-ch-axis {
-  overflow: visible;
-  // margin-bottom: -24px;
-  margin-left: 3px;
-
-  line, path {
-    fill: none;
-    stroke: black;
-  }
-  text {
-    font-weight: normal;
-    font-size: 12px;
-  }
-}
-*/
