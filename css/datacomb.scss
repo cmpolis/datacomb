@@ -46,6 +46,26 @@ input[type=checkbox] {
     -moz-user-select: none;
   }
 
+  .dc-btn {
+    padding: 2px 8px;
+    margin: 4px 0;
+    border-radius: 0;
+    background-color: $darkBlue;
+    color: white;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: background-color 100ms ease-in-out;
+    &:hover {
+      background-color: $lightBlue;
+    }
+    &[opened], &.dc-warn {
+      background-color: #C38C10;
+    }
+  }
+
   // layout structure, three flex el's:
   //   top controls: grow based on content
   //   col-headers:  grow based on content
@@ -75,26 +95,6 @@ input[type=checkbox] {
     label {
       font-weight: 700;
     }
-
-    button {
-      padding: 2px 8px;
-      margin: 4px 0;
-      border-radius: 0;
-      background-color: $darkBlue;
-      color: white;
-      border: none;
-      outline: none;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 12px;
-      transition: background-color 100ms ease-in-out;
-      &:hover {
-        background-color: $lightBlue;
-      }
-      &[opened] {
-        background-color: #C38C10;
-      }
-    }
   }
 
   // column headers
@@ -113,7 +113,7 @@ input[type=checkbox] {
       padding-left: 4px;
       padding-top: 9px;
     }
-    button {
+    .col-action {
       border: none;
       outline: none;
       background: none;
@@ -149,8 +149,11 @@ input[type=checkbox] {
 
     // common scroll list for filters + stats
     ul.scroll-list {
-      max-height: 80px;
+      max-height: 100px;
       overflow: scroll;
+      li {
+        padding-bottom: 1px;
+      }
     }
   }
 

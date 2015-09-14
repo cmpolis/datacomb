@@ -1,21 +1,21 @@
 <div class='dc-col-header' {{#if isDiscrete}}discrete{{/if}}>
   <h4>
     {{label}}
-    <button on-click='sort-by-col:{{index}},false'>
+    <button class='col-action' on-click='sort-by-col:{{index}},false'>
       {{#if isDiscrete || index === -1}}
         <i class='fa fa-sort-alpha-asc'></i>
       {{else}}
         <i class='fa fa-sort-amount-asc'></i>
       {{/if}}
     </button>
-    <button on-click='sort-by-col:{{index}},true'>
+    <button class='col-action' on-click='sort-by-col:{{index}},true'>
       {{#if isDiscrete }}
         <i class='fa fa-sort-alpha-desc'></i>
       {{else}}
         <i class='fa fa-sort-amount-desc'></i>
       {{/if}}
     </button>
-    <button on-click='show-scatter-plots:{{index}},'>
+    <button class='col-action' on-click='show-scatter-plots:{{index}},'>
         <i class='fa fa-circle-o'></i>
     </button>
   </h4>
@@ -23,7 +23,14 @@
 
   <!-- filters -->
   <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>
-    {{#if isDiscrete }}
+    {{#if index === -1}}
+      <button class='dc-btn dc-warn'>
+        <i class='fa fa-close'></i>
+        Reset filters
+      </button>
+
+    {{elseif isDiscrete }}
+      <button on-click='set("filter.toggled.*", true)' class='col-action'>All</button> / <button on-click='set("filter.toggled.*", false)' class='col-action'>None</button>
       <ul class='scroll-list'>
       {{#uniqValues:valNdx}}
         <li>

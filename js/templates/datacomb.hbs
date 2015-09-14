@@ -20,25 +20,27 @@ Copytight Chris Polis, 2015. All rights reserved.
     <label>
       <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused
     </label>
-    <button on-click='toggle("filtersOpen")'
+    <button class='dc-btn'
+            on-click='toggle("filtersOpen")'
             {{#if filtersOpen}}opened{{/if}} >
       <i class='fa fa-filter'></i>
       {{#if filtersOpen}}Hide Filters{{else}}Show Filters{{/if}}
     </button>
-    <button on-click='toggle("statsOpen")'
+    <button class='dc-btn'
+            on-click='toggle("statsOpen")'
             {{#if statsOpen}}opened{{/if}} >
       <i class='fa fa-list'></i>
       {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats
     </button>
-    <button>
+    <button class='dc-btn'>
       <i class='fa fa-bar-chart'></i>
       Show Histograms
     </button>
-    <button on-click='focus-all'>
+    <button class='dc-btn' on-click='focus-all'>
       <i class='fa fa-arrows-v'></i>
       Focus All
     </button>
-    <button on-click='unfocus-all'>
+    <button class='dc-btn' on-click='unfocus-all'>
       <i class='fa fa-minus'></i>
       Unfocus All
     </button>
@@ -58,6 +60,8 @@ Copytight Chris Polis, 2015. All rights reserved.
     <li>
       <ColHeader label="Row Label"
         index={{-1}}
+        filtersOpen={{filtersOpen}}
+        statsOpen={{statsOpen}}
         hoverValue={{ hoverRow._rowLabel }} /></li>
     {{#cols:colNdx}}
       <li><ColHeader
