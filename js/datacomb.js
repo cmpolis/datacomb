@@ -229,7 +229,7 @@ Datacomb.prototype.getRows = function(opts) {
       this.allRows = opts.sort ?
         _.sortByOrder(this.allRows,
           ['_values.'+this.groupByColNdx, '_values.'+opts.sort.colNdx],
-          [true, opts.sort.desc]) :
+          [true, !opts.sort.desc]) :
         _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
     }
 
