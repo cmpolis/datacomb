@@ -185,11 +185,13 @@ Datacomb.prototype.initTable = function() {
   //
   this.focusRows = function(ndxA, ndxB) {
     var minNdx = Math.min(ndxA, ndxB),
-        maxNdx = Math.max(ndxA, ndxB);
+        maxNdx = Math.max(ndxA, ndxB),
+        forceUpdate = false;
 
     // Single row selection - toggle
     if(minNdx === maxNdx) {
       self.allRows[minNdx].focused = !self.allRows[minNdx].focused;
+      forceUpdate = !self.allRows[minNdx].focused && this.hideUnfocused;
 
     // Multiple row selection - more complicated logic???
     //   all selected -> unselect
@@ -203,7 +205,7 @@ Datacomb.prototype.initTable = function() {
       }
     }
     self.allRows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.getRows({ force: true }));
+    self.table.updateData(self.getRows(forceUpdate ? { force: true } : null));
   };
 };
 
