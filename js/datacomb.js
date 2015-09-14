@@ -57,6 +57,11 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
+  this.manager.on('*.show-scatter-plots', function(evt, colNdx) {
+    // self.applySort(colNdx, descOrder);
+    console.log('update scatter plots...', colNdx);
+    this.set('scatterPlotNdx', colNdx);
+  });
   this.manager.observe('focusOnHover', function(shouldFocus) {
     if(!shouldFocus) {
       self.allRows[self.currentHoverNdx].hovered = false;
@@ -97,15 +102,15 @@ Datacomb.prototype.initTable = function() {
     heightFn: function(d) { return (d.hovered || d.focused) ? 17 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
-      var nodeContent = "<div class='dc-rlabel'><div class='dc-label'>"+d._rowLabel+"</div></div>";
+      var nodeContent = "<div class='dc-cell' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
       node.classList.add('dc-row');
       //node.setAttribute('dc-color-ndx', '');
       node._dcndx = d.ndx;
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
-          nodeContent += "<div class='dc-disccell'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
+          nodeContent += "<div class='dc-cell' coltype='disc'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
         } else {
-          nodeContent += "<div class='dc-datacell'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
+          nodeContent += "<div class='dc-cell' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
         }
       });
       node.innerHTML = nodeContent;
@@ -180,11 +185,13 @@ Datacomb.prototype.initTable = function() {
   //
   this.focusRows = function(ndxA, ndxB) {
     var minNdx = Math.min(ndxA, ndxB),
-        maxNdx = Math.max(ndxA, ndxB);
+        maxNdx = Math.max(ndxA, ndxB),
+        forceUpdate = false;
 
     // Single row selection - toggle
     if(minNdx === maxNdx) {
       self.allRows[minNdx].focused = !self.allRows[minNdx].focused;
+      forceUpdate = !self.allRows[minNdx].focused && this.hideUnfocused;
 
     // Multiple row selection - more complicated logic???
     //   all selected -> unselect
@@ -198,7 +205,7 @@ Datacomb.prototype.initTable = function() {
       }
     }
     self.allRows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.getRows());
+    self.table.updateData(self.getRows(forceUpdate ? { force: true } : null));
   };
 };
 
@@ -243,7 +250,6 @@ Datacomb.prototype.getRows = function(opts) {
     if(opts.hideUnfocused !== undefined) { this.hideUnfocused = opts.hideUnfocused; }
     if(this.hideUnfocused) {
       this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
-      this.hideUnfocused = true;
     }
   }
   this.pipelinedRows.forEach(function(d) { d.filtered = false; });

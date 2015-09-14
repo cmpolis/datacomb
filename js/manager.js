@@ -38,7 +38,8 @@ var Manager = Ractive.extend({
       cols: [],
       filters: [],
       groupByColNdx: -1,
-      colorByColNdx: -1
+      colorByColNdx: -1,
+      scatterPlotNdx: -1
     };
   },
 
