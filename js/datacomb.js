@@ -49,7 +49,8 @@ Datacomb.prototype.initManager = function() {
     el: this.el,
     data: {
       cols: this.parsed.columns,
-      histogramMax: this.parsed.histogramMax
+      histogramMax: this.parsed.histogramMax,
+      scatterArrays: []
     }
   });
 
@@ -58,10 +59,17 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
     self.applySort(colNdx, descOrder);
   });
-  this.manager.on('*.show-scatter-plots', function(evt, colNdx) {
+  this.manager.on('*.show-scatter-plots', function(evt, scatterNdx) {
     // self.applySort(colNdx, descOrder);
-    console.log('update scatter plots...', colNdx);
-    this.set('scatterPlotNdx', colNdx);
+    var scatterCol = self.parsed.columns[scatterNdx];
+    this.set('scatterPlotNdx', scatterNdx);
+    this.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
+      return col.type === 'discrete' ? null :
+        self.allRows.map(function(row) {
+          return [ scatterCol.widthFn(row._values[scatterNdx]),
+                   col.widthFn(row._values[ndx]) ];
+        });
+    }));
   });
 
   // click histogram bar

@@ -69,12 +69,16 @@ Copytight Chris Polis, 2015. All rights reserved.
       <li><ColHeader
         filtersOpen={{filtersOpen}}
         statsOpen={{statsOpen}}
+        statsOpen={{statsOpen}}
+        scatterOpen={{scatterPlotNdx !== -1}}
+        scatterPlotNdx={{scatterPlotNdx}}
         isDiscrete={{ type=='discrete' }}
         min={{ cols[colNdx].min }}
         max={{ cols[colNdx].max }}
         label={{ label }}
         index={{ colNdx }}
         filter={{ filters[colNdx] }}
+        scatterData={{ scatterArrays[colNdx] }}
         hoverValue={{ hoverRow._values[colNdx] }} /></li>
     {{/cols}}
   </ul>

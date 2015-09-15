@@ -22,21 +22,19 @@ var ColHeader = Ractive.extend({
       max: 1,
       width: 160,
       histogramHeight: 80,
+      scatterHeight: 160,
       hoverValue: 0,
       filter: {},
       filtersOpen: false,
       statsOpen: false,
-      histogramBarData: []
+      histogramBarData: [],
+      scatterData: []
     };
   },
   onrender: function() {
     var self = this;
 
     if(!this.get('isDiscrete')) {
-      // init scatter plot
-      // this.canvas = this.el.querySelector('canvas');
-      // this.context = this.canvas.getContext('2d');
-      // CanvasDPIScaler(this.canvas, this.context);
 
       // build svg axis
       this.scale = d3.scale.linear();
@@ -76,6 +74,33 @@ var ColHeader = Ractive.extend({
           .attr('x1', pxValue-1)
           .attr('x2', pxValue-1);
       });
+
+      // build scatter plot
+      this.observe('scatterData', function(points) {
+        var height = this.get('scatterHeight'),
+            width = this.get('width'),
+            radius = 2.5,
+            canvas = this.canvas = this.el.querySelector('canvas'),
+            context = this.context = this.canvas.getContext('2d');
+
+        // TODO: clean up this rendering, generalize...
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.globalAlpha = 0.23;
+        context.fillStyle = '#1166B7';
+        points.forEach(function(point, ndx) {
+          context.beginPath();
+          context.arc(point[1] * (width / 100),
+                      (100 - point[0]) * (height / 100),
+                      radius,
+                      0,
+                      2 * Math.PI,
+                      false);
+          context.fill();
+        });
+        console.log(points);
+        // CanvasDPIScaler(this.canvas, this.context);
+
+      }, { init: false });
     }
   }
 });

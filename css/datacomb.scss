@@ -158,6 +158,11 @@ input[type=checkbox] {
       }
     }
 
+    // scatter plot
+    canvas {
+      margin-bottom: -26px;
+    }
+
     // common scroll list for filters + stats
     ul.scroll-list {
       max-height: 100px;
