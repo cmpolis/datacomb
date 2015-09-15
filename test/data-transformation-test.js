@@ -51,7 +51,8 @@ describe('Data transformation (passing rows through columns)', function() {
       this.columns = [ {
         label: 'Population',
         accessor: 'population' } ];
-      this.parsedCol = dataParser(this.rows, this.columns).columns[0];
+      this.parsed = dataParser(this.rows, this.columns);
+      this.parsedCol = this.parsed.columns[0];
     });
 
     it('calculates the bounds of values for given column', function() {
@@ -70,10 +71,6 @@ describe('Data transformation (passing rows through columns)', function() {
       this.parsedCol.should.have.property('median');
       this.parsedCol.should.have.property('sd');
     });
-    it('calculates histogram from row values', function() {
-      this.parsedCol.should.have.property('histogram');
-      //TODO: more complicated/value checking...
-    });
     it('sets row value for column', function() {
       var parsed = dataParser(this.rows, this.columns),
           parsedRow = parsed.rows[0];
@@ -83,6 +80,17 @@ describe('Data transformation (passing rows through columns)', function() {
       var parsed = dataParser(this.rows, this.columns),
           parsedRow = parsed.rows[0];
       parsedRow._widths[0].should.be.a('Number');
+    });
+
+    //
+    describe('Histogram', function() {
+      it('calculates histogram from row values', function() {
+        this.parsedCol.should.have.property('histogram');
+      });
+      it('calculates histogram bin with the largest count', function() {
+        this.parsed.should.have.property('histogramMax');
+        this.parsed.histogramMax.should.be.a('Number');
+      });
     });
   });
 

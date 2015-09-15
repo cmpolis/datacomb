@@ -147,6 +147,17 @@ input[type=checkbox] {
       b { font-weight: 700; }
     }
 
+    // histograms
+    .dc-histogram {
+      [hidden] { opacity: 0; }
+      rect {
+        fill: #B9D3EC;
+        stroke-width: 1px;
+        stroke: #FFF;
+        &:hover { fill: $lightBlue; }
+      }
+    }
+
     // common scroll list for filters + stats
     ul.scroll-list {
       max-height: 100px;

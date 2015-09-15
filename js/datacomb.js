@@ -48,7 +48,8 @@ Datacomb.prototype.initManager = function() {
   this.manager = new Manager({
     el: this.el,
     data: {
-      cols: this.parsed.columns
+      cols: this.parsed.columns,
+      histogramMax: this.parsed.histogramMax
     }
   });
 

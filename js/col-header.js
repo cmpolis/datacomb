@@ -21,13 +21,16 @@ var ColHeader = Ractive.extend({
       min: 0,
       max: 1,
       width: 160,
+      histogramHeight: 80,
       hoverValue: 0,
       filter: {},
       filtersOpen: false,
-      statsOpen: false
+      statsOpen: false,
+      histogramBarData: []
     };
   },
   onrender: function() {
+    var self = this;
 
     if(!this.get('isDiscrete')) {
       // init scatter plot
@@ -40,13 +43,10 @@ var ColHeader = Ractive.extend({
       this.axis = d3.svg.axis().orient('top').ticks(3);
       this.axis.scale(this.scale);
       this.axisSvg = d3.select(this.el).select('.dc-ch-axis');
-      this.axisSvg.append('g')
-        .attr('class', 'ch-axis-g')
-        .attr('transform', 'translate(0,24)');
-      this.axisSvg.append('line')
+      this.axisSvg.select('.ch-axis-g').append('line')
         .attr('class', 'axis-hover-line')
         .attr('x1', 10).attr('y1', 0)
-        .attr('x2', 10).attr('y2', 24);
+        .attr('x2', 10).attr('y2', -24);
 
       // update axis on data bounds, width changes
       this.observe('min max width', function() {
@@ -58,6 +58,17 @@ var ColHeader = Ractive.extend({
         this.axisSvg.select('.ch-axis-g')
           .call(this.axis);
       });
+      var histogram = this.get('histogram'),
+          histogramMax = this.get('histogramMax'),
+          histogramHeight = this.get('histogramHeight');
+      this.set('histogramBarData', histogram.map(function(bin) {
+        return {
+          x0: self.scale(bin.lower),
+          x1: self.scale(bin.upper),
+          height: (bin.count / histogramMax) * histogramHeight
+        };
+      }));
+      console.log(this.get('histogramBarData'), this.get('histogramMax'));
 
       // move hover slider
       this.observe('hoverValue', function(newHoverValue) {

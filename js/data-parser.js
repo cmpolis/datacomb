@@ -8,7 +8,7 @@ var _ = require('lodash'),
     d3 = require('d3');
 
 // settings
-var histogramBins = 12;
+var histogramBins = 20;
 
 //
 module.exports = function(rows, columns, labelAccessor) {
@@ -44,14 +44,23 @@ module.exports = function(rows, columns, labelAccessor) {
           return {
             count: count,
             colNdx: ndx,
-            binMin: column.min + ((binNdx / histogramBins) * (column.max - column.min)),
-            binMax: column.min + (((binNdx+1) / histogramBins) * (column.max - column.min))
+            lower: column.min + ((binNdx / histogramBins) * (column.max - column.min)),
+            upper: column.min + (((binNdx+1) / histogramBins) * (column.max - column.min))
           }
         }),
         widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
       });
     }
   });
+
+  // need to find largest common histogram bin count for common y axis
+  var histogramMax = _.max(
+    _(parsedColumns)
+      .map('histogram')
+      .compact()
+      .flatten()
+      .map('count')
+      .value() );
 
   //
   var value, widths, values, labels;
@@ -81,6 +90,7 @@ module.exports = function(rows, columns, labelAccessor) {
 
   return {
     columns: parsedColumns,
+    histogramMax: histogramMax,
     rows: parsedRows
   };
 };

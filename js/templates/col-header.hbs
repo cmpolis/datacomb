@@ -78,20 +78,30 @@
     {{/if}}
   </div>
 
-  <!-- histograms -->
-  <div {{#if !histogramsOpen }}hidden{{/if}}>
-    {{#if !isDiscrete }}
-      <h3>HISTOGRAM HERE</h3>
-    {{/if}}
-  </div>
 
 
-  <!-- axis -->
+  <!-- svg, canvas elements -->
   {{#if isDiscrete}}
     <div class='disc-value'>{{hoverValue}}</div>
   {{else}}
     <!-- <canvas class='dc-col-scatter' width={{width}} height=160></canvas>-->
-    <svg class='dc-ch-axis' height='22' width='{{width}}'></svg>
+    <svg class='dc-ch-axis dc-histogram' height='{{histogramsOpen ? 78 : 22}}' width='{{width}}'>
+        <!-- histograms -->
+        {{#if !isDiscrete }}
+        <g {{#if !histogramsOpen }}hidden{{/if}}>
+          {{#histogramBarData}}
+            <rect x={{x0}}
+                  y={{histogramHeight-height}}
+                  width={{x1-x0}}
+                  height={{height}} />
+          {{/histogramBarData}}
+        </g>
+        {{/if}}
+
+        <!-- axis -->
+        <g class='ch-axis-g' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>
+
+    </svg>
   {{/if}}
 
 </div>
