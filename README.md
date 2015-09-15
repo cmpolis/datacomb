@@ -16,7 +16,7 @@ An interactive tool for exploring large, tabular datasets.
   * :thumbsup: filtering
   * :thumbsup: sorting
   * :construction: scatter plots (canvas)
-  * :construction: histograms
+  * :thumbsup: histograms
   * :thumbsup: summary statistics
   * :thumbsup: grouping (by discrete dimensions)
   * :thumbsup: coloring (by discrete dimensions)
