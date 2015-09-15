@@ -24,7 +24,7 @@ Copytight Chris Polis, 2015. All rights reserved.
             on-click='toggle("filtersOpen")'
             {{#if filtersOpen}}opened{{/if}} >
       <i class='fa fa-filter'></i>
-      {{#if filtersOpen}}Hide Filters{{else}}Show Filters{{/if}}
+      {{#if filtersOpen}}Hide{{else}}Show{{/if}} Filters
     </button>
     <button class='dc-btn'
             on-click='toggle("statsOpen")'
@@ -32,9 +32,11 @@ Copytight Chris Polis, 2015. All rights reserved.
       <i class='fa fa-list'></i>
       {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats
     </button>
-    <button class='dc-btn'>
+    <button class='dc-btn'
+            on-click='toggle("histogramsOpen")'
+            {{#if histogramsOpen}}opened{{/if}} >
       <i class='fa fa-bar-chart'></i>
-      Show Histograms
+      {{#if histogramsOpen}}Hide{{else}}Show{{/if}} Histograms
     </button>
     <button class='dc-btn' on-click='focus-all'>
       <i class='fa fa-arrows-v'></i>

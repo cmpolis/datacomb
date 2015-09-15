@@ -78,6 +78,13 @@
     {{/if}}
   </div>
 
+  <!-- histograms -->
+  <div {{#if !histogramsOpen }}hidden{{/if}}>
+    {{#if !isDiscrete }}
+      <h3>HISTOGRAM HERE</h3>
+    {{/if}}
+  </div>
+
 
   <!-- axis -->
   {{#if isDiscrete}}

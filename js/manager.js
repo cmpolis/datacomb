@@ -34,6 +34,7 @@ var Manager = Ractive.extend({
       hideUnfocused: false,
       filtersOpen: false,
       statsOpen: false,
+      histogramsOpen: false,
       hoverValues: [],
       cols: [],
       filters: [],
