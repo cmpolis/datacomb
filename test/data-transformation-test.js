@@ -70,7 +70,10 @@ describe('Data transformation (passing rows through columns)', function() {
       this.parsedCol.should.have.property('median');
       this.parsedCol.should.have.property('sd');
     });
-    it('calculates histogram from row values');
+    it('calculates histogram from row values', function() {
+      this.parsedCol.should.have.property('histogram');
+      //TODO: more complicated/value checking...
+    });
     it('sets row value for column', function() {
       var parsed = dataParser(this.rows, this.columns),
           parsedRow = parsed.rows[0];

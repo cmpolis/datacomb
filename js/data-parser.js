@@ -4,7 +4,11 @@
 
 //
 var _ = require('lodash'),
+    jStat = require('jStat').jStat,
     d3 = require('d3');
+
+// settings
+var histogramBins = 12;
 
 //
 module.exports = function(rows, columns, labelAccessor) {
@@ -36,6 +40,14 @@ module.exports = function(rows, columns, labelAccessor) {
         mean: d3.mean(values),
         median: d3.median(values),
         sd: d3.deviation(values),
+        histogram: jStat.histogram(values, histogramBins).map(function(count, binNdx) {
+          return {
+            count: count,
+            colNdx: ndx,
+            binMin: column.min + ((binNdx / histogramBins) * (column.max - column.min)),
+            binMax: column.min + (((binNdx+1) / histogramBins) * (column.max - column.min))
+          }
+        }),
         widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
       });
     }
