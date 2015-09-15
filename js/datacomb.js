@@ -66,7 +66,6 @@ Datacomb.prototype.initManager = function() {
 
   // click histogram bar
   this.manager.on('*.focus-histogram', function(evt, colNdx, lower, upper) {
-    console.log('click histogram', arguments);
     for(var ndx = 0; ndx < self.allRows.length; ndx++) {
       if(self.allRows[ndx]._values[colNdx] <= upper &&
          self.allRows[ndx]._values[colNdx] >= lower) {
@@ -79,7 +78,6 @@ Datacomb.prototype.initManager = function() {
 
   // hover histogram bar
   this.manager.on('*.hover-histogram', function(evt, colNdx, lower, upper) {
-    console.log('hover histogram', arguments);
     for(var ndx = 0; ndx < self.allRows.length; ndx++) {
       self.allRows[ndx].histogramHover =
          (self.allRows[ndx]._values[colNdx] <= upper &&
@@ -87,6 +85,12 @@ Datacomb.prototype.initManager = function() {
     }
     self.table.updateData(self.getRows({ force: true }));
   });
+  this.manager.observe('histogramsOpen', function() {
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      self.allRows[ndx].histogramHover = false;
+    }
+    self.table.updateData(self.getRows({ force: true }));
+  }, { init: false });
 
   this.manager.observe('focusOnHover', function(shouldFocus) {
     if(!shouldFocus) {
