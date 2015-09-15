@@ -15,7 +15,7 @@
         <i class='fa fa-sort-amount-desc'></i>
       {{/if}}
     </button>
-    <button class='col-action' on-click='show-scatter-plots:{{index}},'>
+    <button class='col-action' on-click='show-scatter-plots:{{index}}'>
         <i class='fa fa-circle-o'></i>
     </button>
   </h4>
@@ -93,7 +93,9 @@
             <rect x={{x0}}
                   y={{histogramHeight-height}}
                   width={{x1-x0}}
-                  height={{height}} />
+                  height={{height}}
+                  on-mouseover='hover-histogram:{{index}},{{lower}},{{upper}}'
+                  on-click='focus-histogram:{{index}},{{lower}},{{upper}}' />
           {{/histogramBarData}}
         </g>
         {{/if}}

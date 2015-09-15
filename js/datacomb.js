@@ -63,6 +63,31 @@ Datacomb.prototype.initManager = function() {
     console.log('update scatter plots...', colNdx);
     this.set('scatterPlotNdx', colNdx);
   });
+
+  // click histogram bar
+  this.manager.on('*.focus-histogram', function(evt, colNdx, lower, upper) {
+    console.log('click histogram', arguments);
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      if(self.allRows[ndx]._values[colNdx] <= upper &&
+         self.allRows[ndx]._values[colNdx] >= lower) {
+        self.allRows[ndx].focused = true;
+      }
+    }
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.table.updateData(self.getRows({ force: true }));
+  });
+
+  // hover histogram bar
+  this.manager.on('*.hover-histogram', function(evt, colNdx, lower, upper) {
+    console.log('hover histogram', arguments);
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      self.allRows[ndx].histogramHover =
+         (self.allRows[ndx]._values[colNdx] <= upper &&
+          self.allRows[ndx]._values[colNdx] >= lower);
+    }
+    self.table.updateData(self.getRows({ force: true }));
+  });
+
   this.manager.observe('focusOnHover', function(shouldFocus) {
     if(!shouldFocus) {
       self.allRows[self.currentHoverNdx].hovered = false;
@@ -100,7 +125,7 @@ Datacomb.prototype.initTable = function() {
     el: this.el.querySelector('.dc-table'),
     data: this.allRows,
     availableNodes: 1000,
-    heightFn: function(d) { return (d.hovered || d.focused) ? 17 : 4; },
+    heightFn: function(d) { return (d.hovered || d.focused || d.histogramHover) ? 17 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-cell' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
@@ -121,8 +146,8 @@ Datacomb.prototype.initTable = function() {
       el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
       //d._colorNdx ? el.setAttribute('dc-color-ndx', d._colorNdx) : el.removeAttribute('dc-color-ndx');
-      d.hovered ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
-      (d.hovered || d.focused) ?
+      (d.hovered || d.histogramHover) ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
+      (d.hovered || d.focused || d.histogramHover) ?
         el.setAttribute('dc-expand', '') :
         el.removeAttribute('dc-expand');
 

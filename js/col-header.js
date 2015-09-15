@@ -62,13 +62,12 @@ var ColHeader = Ractive.extend({
           histogramMax = this.get('histogramMax'),
           histogramHeight = this.get('histogramHeight');
       this.set('histogramBarData', histogram.map(function(bin) {
-        return {
+        return _.extend(bin, {
           x0: self.scale(bin.lower),
           x1: self.scale(bin.upper),
           height: (bin.count / histogramMax) * histogramHeight
-        };
+        });
       }));
-      console.log(this.get('histogramBarData'), this.get('histogramMax'));
 
       // move hover slider
       this.observe('hoverValue', function(newHoverValue) {
