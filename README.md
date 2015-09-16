@@ -46,7 +46,7 @@ An interactive tool for exploring large, tabular datasets.
 ```shell
 $ npm install
 $ npm run serve
-$ open localhost:5050
+$ open http://localhost:5050/demo/datacomb
 ```
 
 
