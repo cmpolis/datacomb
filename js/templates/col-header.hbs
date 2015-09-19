@@ -1,4 +1,4 @@
-<div class='dc-col-header' {{#if isDiscrete}}discrete{{/if}}>
+<div class='dc-col-header' style='width:{{width}}px;' {{#if isDiscrete}}discrete{{/if}}>
   <h4>
     {{label}}
     <button class='col-action' on-click='sort-by-col:{{index}},false'>
@@ -54,7 +54,7 @@
         <input type='text' value={{ filter.lt }} />
       </div>
       <RangeSlider
-        width=160
+        width={{ width}}
         lowerBound={{min}}
         upperBound={{max}}
         lower={{filter.gt}}

@@ -5,7 +5,6 @@
 @import 'data-colors';
 
 // Size and position
-$cellWidth: 160px;
 $cellRightMargin: 10px;
 $transition: 300ms ease-in-out;
 
@@ -102,7 +101,6 @@ input[type=checkbox] {
     padding-left: 24px;
     > li {
       display: inline-block;
-      width: $cellWidth;
       margin-right: $cellRightMargin;
       font-weight: bold;
       padding-top: 4px;
@@ -180,9 +178,9 @@ input[type=checkbox] {
     // all cells
     .dc-cell {
       display: inline-block;
-      width: $cellWidth;
       margin-left: $cellRightMargin;
       vertical-align: top;
+      white-space: nowrap;
 
       // bars
       .dc-bar {
@@ -194,7 +192,11 @@ input[type=checkbox] {
       // row labels
       &[coltype=label] {
         font-weight: 700;
-        .dc-label { display: none; }
+        .dc-label {
+          text-overflow: ellipsis;
+          overflow: hidden;
+          display: none;
+        }
       }
 
       // continuous columns (bars)
@@ -205,7 +207,11 @@ input[type=checkbox] {
       // discrete columns (nothing or text)
       &[coltype=disc] {
         .dc-disc-val { display: none; }
-        .dc-bar { width: 100%; }
+        .dc-bar {
+          text-overflow: ellipsis;
+          overflow: hidden;
+          width: 100%;
+        }
       }
     }
 

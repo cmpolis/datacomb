@@ -30,6 +30,8 @@ var Datacomb = function(opts) {
   for(var key in opts) { this[key] = opts[key]; }
 
   //
+  this.width = this.width || this.el.getBoundingClientRect().width - 120;
+  this.colWidth = this.width / (this.columns.length + 1);
   this.groupByColNdx = -1;
   this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
   this.allRows = this.parsed.rows;
@@ -50,7 +52,8 @@ Datacomb.prototype.initManager = function() {
     data: {
       cols: this.parsed.columns,
       histogramMax: this.parsed.histogramMax,
-      scatterArrays: []
+      scatterArrays: [],
+      colWidth: this.colWidth
     }
   });
 
@@ -140,7 +143,7 @@ Datacomb.prototype.initTable = function() {
     heightFn: function(d) { return (d.hovered || d.focused || d.histogramHover) ? 17 : 4; },
     buildRow: function(d) {
       var node = document.createElement('div');
-      var nodeContent = "<div class='dc-cell' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
+      var nodeContent = "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
       node.classList.add('dc-row');
       //node.setAttribute('dc-color-ndx', '');
       node._dcndx = d.ndx;
@@ -148,9 +151,9 @@ Datacomb.prototype.initTable = function() {
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
           discreteColor = palette[d._discreteNdx[colNdx] % palette.length];
-          nodeContent += "<div class='dc-cell' coltype='disc'><div class='dc-bar' style='background-color:"+discreteColor+";'></div><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
+          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='disc'><div class='dc-bar' style='background-color:"+discreteColor+";'></div><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
         } else {
-          nodeContent += "<div class='dc-cell' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
+          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
         }
       });
       node.innerHTML = nodeContent;
