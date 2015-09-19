@@ -76,12 +76,15 @@ var ColHeader = Ractive.extend({
       });
 
       // build scatter plot
+      this.canvas = this.el.querySelector('canvas'),
+      this.context = this.canvas.getContext('2d');
+      CanvasDPIScaler(this.canvas, this.context, this.get('width'), this.get('scatterHeight'));
       this.observe('scatterData', function(points) {
         var height = this.get('scatterHeight'),
             width = this.get('width'),
             radius = 2.5,
-            canvas = this.canvas = this.el.querySelector('canvas'),
-            context = this.context = this.canvas.getContext('2d');
+            canvas = this.canvas, //= this.el.querySelector('canvas'),
+            context = this.context; //= this.canvas.getContext('2d');
 
         // TODO: clean up this rendering, generalize...
         context.clearRect(0, 0, canvas.width, canvas.height);
@@ -100,7 +103,6 @@ var ColHeader = Ractive.extend({
           context.globalAlpha = point[3] ? 1 : point[2] ? 0.28 : 0.13;
           context.fill();
         });
-        // CanvasDPIScaler(this.canvas, this.context);
 
       }, { init: false });
     }

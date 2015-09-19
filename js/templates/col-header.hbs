@@ -92,7 +92,7 @@
   {{#if isDiscrete}}
     <div class='disc-value'>{{hoverValue}}</div>
   {{else}}
-    <canvas class='dc-col-scatter' width={{width}} height={{scatterOpen ? scatterHeight : 0}}></canvas>
+  <canvas class='dc-col-scatter' width={{width}} height={{scatterHeight}} {{#if !scatterOpen}}hidden{{/if}}></canvas>
     <svg class='dc-ch-axis dc-histogram' height='{{histogramsOpen ? 78 : 22}}' width='{{width}}'>
         <!-- histograms -->
         {{#if !isDiscrete }}
