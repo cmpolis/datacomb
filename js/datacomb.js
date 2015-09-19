@@ -65,12 +65,16 @@ Datacomb.prototype.initManager = function() {
   this.manager.on('*.show-scatter-plots', function(evt, scatterNdx) {
     // self.applySort(colNdx, descOrder);
     var scatterCol = self.parsed.columns[scatterNdx];
+    self.scatterNdx = scatterNdx;
     this.set('scatterPlotNdx', scatterNdx);
     this.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
       return col.type === 'discrete' ? null :
         self.allRows.map(function(row) {
           return [ scatterCol.widthFn(row._values[scatterNdx]),
-                   col.widthFn(row._values[ndx]) ];
+                   col.widthFn(row._values[ndx]),
+                   (row.focused && !row.filtered), // highlight
+                   (row.hovered) // hover
+                 ];
         });
     }));
   });
@@ -297,6 +301,22 @@ Datacomb.prototype.getRows = function(opts) {
     }
   }
   this.pipelinedRows.forEach(function(d) { d.filtered = false; });
+
+  // update scatter plots...
+  if(this.scatterNdx >= 0) {
+    var scatterCol = self.parsed.columns[self.scatterNdx];
+    this.manager.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
+      return col.type === 'discrete' ? null :
+        self.allRows.map(function(row) {
+          return [ scatterCol.widthFn(row._values[self.scatterNdx]),
+                   col.widthFn(row._values[ndx]),
+                   (row.focused && !row.filtered), // highlight
+                   (row.hovered) // hover
+                 ];
+        });
+    }));
+  }
+
   return this.pipelinedRows;
 };
 

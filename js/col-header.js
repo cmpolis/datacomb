@@ -95,9 +95,11 @@ var ColHeader = Ractive.extend({
                       0,
                       2 * Math.PI,
                       false);
+          context.fillStyle = point[2] ? 'red' : '#1166B7';
+          if(point[3]) { context.fillStyle = 'purple'; }
+          context.globalAlpha = point[3] ? 1 : point[2] ? 0.28 : 0.13;
           context.fill();
         });
-        console.log(points);
         // CanvasDPIScaler(this.canvas, this.context);
 
       }, { init: false });
