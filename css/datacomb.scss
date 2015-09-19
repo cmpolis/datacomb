@@ -184,6 +184,13 @@ input[type=checkbox] {
       margin-left: $cellRightMargin;
       vertical-align: top;
 
+      // bars
+      .dc-bar {
+        height: 3px;
+        background: #666;
+        border-left: 1px solid #333;
+      }
+
       // row labels
       &[coltype=label] {
         font-weight: 700;
@@ -193,16 +200,12 @@ input[type=checkbox] {
       // continuous columns (bars)
       &[coltype=cont] {
         .dc-cont-val { display: none; }
-        .dc-bar {
-          height: 3px;
-          background: #666;
-          border-left: 1px solid #333;
-        }
       }
 
       // discrete columns (nothing or text)
       &[coltype=disc] {
         .dc-disc-val { display: none; }
+        .dc-bar { width: 100%; }
       }
     }
 

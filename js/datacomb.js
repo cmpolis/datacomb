@@ -144,9 +144,11 @@ Datacomb.prototype.initTable = function() {
       node.classList.add('dc-row');
       //node.setAttribute('dc-color-ndx', '');
       node._dcndx = d.ndx;
+      var discreteColor;
       self.parsed.columns.forEach(function(column, colNdx) {
         if(column.type === 'discrete') {
-          nodeContent += "<div class='dc-cell' coltype='disc'><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
+          discreteColor = palette[d._discreteNdx[colNdx] % palette.length];
+          nodeContent += "<div class='dc-cell' coltype='disc'><div class='dc-bar' style='background-color:"+discreteColor+";'></div><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
         } else {
           nodeContent += "<div class='dc-cell' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
         }
@@ -165,7 +167,8 @@ Datacomb.prototype.initTable = function() {
 
       for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
         if(self.parsed.columns[colNdx].type === 'discrete') {
-          el.childNodes[colNdx + 1].childNodes[0].textContent = d._values[colNdx];
+          el.childNodes[colNdx + 1].childNodes[0].style.backgroundColor = palette[d._discreteNdx[colNdx] % palette.length];
+          el.childNodes[colNdx + 1].childNodes[1].textContent = d._values[colNdx];
 
         } else {
           el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
