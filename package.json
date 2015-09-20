@@ -1,6 +1,6 @@
 {
   "name": "datacomb",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "An interactive tool for exploring large, tabular datasets.",
   "main": "js/datacomb.js",
   "scripts": {
