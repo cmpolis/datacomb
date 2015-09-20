@@ -45,6 +45,7 @@ An interactive tool for exploring large, tabular datasets.
 
 ```shell
 $ npm install
+$ npm run build
 $ npm run serve
 $ open http://localhost:5050/demo/
 ```
