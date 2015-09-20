@@ -52,7 +52,7 @@ d3.csv('../../data/nba-player-totals-20142015.csv')
 
     // test with 2^n larger datasets...
     // for(var ndx = 0; ndx < 5; ndx++) { rows = _.flatten([_.cloneDeep(rows), _.cloneDeep(rows)]); }
-    var dc = window.dc = new Datacomb.datacomb({
+    var dc = window.dc = new Datacomb({
 
       //
       el: document.getElementById('datacomb-target'),
