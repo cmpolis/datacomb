@@ -67,5 +67,4 @@ Demo dataset sources:
 * diamonds: https://vincentarelbundock.github.io/Rdatasets/datasets.html
 * nba players: http://www.basketball-reference.com/
 
-
-*Copyright (c) Chris Polis, 2015. All Rights Reserved.*
+*Released under the MIT License.*

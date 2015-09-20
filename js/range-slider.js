@@ -2,7 +2,6 @@
 //
 // A simple Ractive component for a range slider built with two
 //  html <input type='range'> elements.
-// Copyright (c) 2015 Chris Polis, All Rights Reserved.
 
 //
 var Ractive = require('ractive');
