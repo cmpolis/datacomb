@@ -15,7 +15,7 @@ An interactive tool for exploring large, tabular datasets.
   * :thumbsup: drag interaction
   * :thumbsup: filtering
   * :thumbsup: sorting
-  * :construction: scatter plots (canvas)
+  * :thumbsup: scatter plots (canvas)
   * :thumbsup: histograms
   * :thumbsup: summary statistics
   * :thumbsup: grouping (by discrete dimensions)
@@ -46,7 +46,7 @@ An interactive tool for exploring large, tabular datasets.
 ```shell
 $ npm install
 $ npm run serve
-$ open http://localhost:5050/demo/datacomb
+$ open http://localhost:5050/demo/
 ```
 
 
