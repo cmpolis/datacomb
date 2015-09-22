@@ -4,6 +4,7 @@ dependencies:
     src: 'htmlwidgets/lib'
     script: 'datacomb.js'
     stylesheet:
+      - 'css/htmlwidget-reset.css'
       - 'css/global.css'
       - 'css/datacomb.css'
   - name: 'Inconsolata Google Font'

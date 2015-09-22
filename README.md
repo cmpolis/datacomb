@@ -40,8 +40,61 @@ An interactive tool for exploring large, tabular datasets.
 ### Demo
 
 ### Usage
+to build: ` $ npm install && npm run build`
 
-`[API definition goes here]`
+```js
+//
+//
+// Sample usage of Datacomb (see also: /demo/demo.js)
+
+// Column definitions, meta data
+var columns = [
+  {
+    label: 'Team',
+    accessor: 'team',
+
+    // columns that are not quantitative need `type` flag
+    type: 'discrete'
+  },
+  {
+    label: 'Points',
+    accessor: 'pts'
+  },
+  {
+    label: 'Minutes',
+    accessor: 'mp'
+  },
+  {
+    label: 'Pts / Min',
+
+    // column defenitions can be functions
+    accessor: function(d) { return d.pts / d.mp },
+
+    // can define `format` function to change how text is displayed on the tbale
+    format: function(val) { return val.toFixed(3) + 'pts/min'; },
+  }
+];
+
+// init the interface
+var myDatacomb = new Datacomb({
+
+  //
+  el: document.getElementById('datacomb-target'),
+
+  // array of objects
+  data: [ {name: 'Hank', team: 'Liverpool', points: 3 }, { ... }, ... ],
+
+  //
+  columns: columns,
+
+  //
+  labelAccessor: 'name'
+
+});
+```
+
+
+### Contributing
 
 ```shell
 $ npm install
@@ -52,6 +105,7 @@ $ open http://localhost:5050/demo/
 
 
 ### Testing
+` $ npm test`
 
 
 ### Resources
