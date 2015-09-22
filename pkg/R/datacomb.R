@@ -2,24 +2,28 @@
 #'
 #' An interface for viewing and combing through data frames.
 #'
+#' @example ./inst/examples/examples.R
 #' @import htmlwidgets
 #'
 #' @export
-Datacomb <- function(dataFrame, columns = c(), rowLabel = NULL, width = NULL, height = NULL) {
-  
+Datacomb <- function(
+  dataFrame, columns = colnames(dataFrame), rowLabel = NULL,
+  width = '100%', height = '100%'
+) {
+
   # build object of config options
   opts = list(
     dataFrame = dataFrame,
     columns = columns,
     rowLabel = rowLabel
   )
-  
+
   # create widget
   htmlwidgets::createWidget(
     name = 'datacomb',
     opts,
-    width = '100%',
-    height = '100%',
+    width = width,
+    height = height,
     package = 'datacomb'
   )
 }
