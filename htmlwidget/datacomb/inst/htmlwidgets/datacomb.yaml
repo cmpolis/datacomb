@@ -1,7 +1,12 @@
-# (uncomment to add a dependency)
-# dependencies:
-#  - name:
-#    version:
-#    src:
-#    script:
-#    stylesheet:
+dependencies:
+  - name: 'datacomb'
+    version: 0.0.1
+    src: 'htmlwidgets/lib'
+    script: 'datacomb.js'
+    stylesheet:
+      - 'css/global.css'
+      - 'css/datacomb.css'
+  - name: 'Inconsolata Google Font'
+    src: 'htmlwidgets/lib'
+    version: 0.0.0
+    stylesheet: 'inconsolata-google-font.css'

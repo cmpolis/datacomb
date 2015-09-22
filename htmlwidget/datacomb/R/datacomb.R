@@ -1,23 +1,25 @@
-#' <Add Title>
+#' Datacomb
 #'
-#' <Add Description>
+#' An interface for viewing and combing through data frames.
 #'
 #' @import htmlwidgets
 #'
 #' @export
-datacomb <- function(message, width = NULL, height = NULL) {
-
-  # forward options using x
-  x = list(
-    message = message
+Datacomb <- function(dataFrame, columns = c(), rowLabel = NULL, width = NULL, height = NULL) {
+  
+  # build object of config options
+  opts = list(
+    dataFrame = dataFrame,
+    columns = columns,
+    rowLabel = rowLabel
   )
-
+  
   # create widget
   htmlwidgets::createWidget(
     name = 'datacomb',
-    x,
-    width = width,
-    height = height,
+    opts,
+    width = '100%',
+    height = '100%',
     package = 'datacomb'
   )
 }
@@ -25,7 +27,7 @@ datacomb <- function(message, width = NULL, height = NULL) {
 #' Widget output function for use in Shiny
 #'
 #' @export
-datacombOutput <- function(outputId, width = '100%', height = '400px'){
+DatacombOutput <- function(outputId, width = '100%', height = '400px'){
   shinyWidgetOutput(outputId, 'datacomb', width, height, package = 'datacomb')
 }
 
@@ -34,5 +36,5 @@ datacombOutput <- function(outputId, width = '100%', height = '400px'){
 #' @export
 renderDatacomb <- function(expr, env = parent.frame(), quoted = FALSE) {
   if (!quoted) { expr <- substitute(expr) } # force quoted
-  shinyRenderWidget(expr, datacombOutput, env, quoted = TRUE)
+  shinyRenderWidget(expr, DatacombOutput, env, quoted = TRUE)
 }
