@@ -13,7 +13,7 @@ Datacomb <- function(
 
   # try to be smart if row names are character
   #   and assume these will be rowLabel
-  if(is.character(rownames(dataFrame))) {
+  if(is.character(rownames(dataFrame)) && is.null(rowLabel)) {
     dataFrame = data.frame(
       name = rownames(dataFrame),
       dataFrame,
