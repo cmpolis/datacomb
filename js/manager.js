@@ -11,7 +11,7 @@ var d3 = require('d3');
 
 //
 var ColHeader = require('./col-header');
-var RangeSlider = require('./range-slider');
+var RangeSlider = require('ractive-range-slider');
 
 //
 var Manager = Ractive.extend({
