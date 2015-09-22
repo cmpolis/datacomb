@@ -4,8 +4,8 @@
 \alias{Datacomb}
 \title{Datacomb}
 \usage{
-Datacomb(dataFrame, columns = c(), rowLabel = NULL, width = "100\%",
-  height = "100\%")
+Datacomb(dataFrame, columns = colnames(dataFrame), rowLabel = NULL,
+  width = "100\%", height = "100\%")
 }
 \description{
 An interface for viewing and combing through data frames.
@@ -13,11 +13,9 @@ An interface for viewing and combing through data frames.
 \examples{
 library(datacomb)
 
-df <- data.frame(model=rownames(mtcars),mtcars)
-Datacomb(
-  df,
-  columns = colnames(df)[-1],
-  rowLabel = "model"
-)
+Datacomb(mtcars)
+
+data(diamonds, package = "ggplot2")
+Datacomb(diamonds)
 }
 

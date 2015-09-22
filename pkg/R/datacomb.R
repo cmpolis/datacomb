@@ -11,6 +11,21 @@ Datacomb <- function(
   width = '100%', height = '100%'
 ) {
 
+  # try to be smart if row names are character
+  #   and assume these will be rowLabel
+  if(is.character(rownames(dataFrame))) {
+    dataFrame = data.frame(
+      name = rownames(dataFrame),
+      dataFrame,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+    # use are opinionated name as rowLabel and exclude from columns
+    if(!is.na(match("name",columns))){
+      columns = columns[-match("name",columns)]
+      rowLabel = "name"
+    }
+  }
   # build object of config options
   opts = list(
     dataFrame = dataFrame,
