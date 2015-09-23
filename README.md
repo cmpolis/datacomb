@@ -32,8 +32,8 @@ An interactive tool for exploring large, tabular datasets.
   * :x: illustrate filter response on histograms
   * :x: illustrate filter response on scatter plots
   * :x: close/expand groupings in table
-  * :x: keyboard shortcuts
-* :x: HTMLWidget/R package
+  * :construction: keyboard shortcuts
+* :construction: HTMLWidget/R package
 * :x: Serializable table configuration format. JSON?
 * :x: Natural language/DSL mode for table configuration, querying
 
@@ -55,6 +55,12 @@ var columns = [
 
     // columns that are not quantitative need `type` flag
     type: 'discrete'
+  },
+  {
+   label: 'Pos',
+   accessor: 'pos',
+   type: 'discrete',
+   sortOrder: 'PG SG SF PF C'.split(' ')
   },
   {
     label: 'Points',
