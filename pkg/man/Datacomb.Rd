@@ -4,11 +4,11 @@
 \alias{Datacomb}
 \title{Datacomb}
 \usage{
-Datacomb(data, columns = colnames(data), rowLabel = NULL, width = "100\%",
-  height = "100\%")
+Datacomb(data = NULL, columns = colnames(data), rowLabel = NULL,
+  width = "100\%", height = "100\%")
 }
 \arguments{
-\item{data}{a data object that can be converted into a
+\item{data}{a data object of a class that can be converted into a
 \code{data.frame}}
 
 \item{columns}{names of the columns in \code{data}

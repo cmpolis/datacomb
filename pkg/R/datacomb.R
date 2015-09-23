@@ -2,7 +2,7 @@
 #'
 #' An interactive interface for viewing and combing through data frames.
 #'
-#' @param data a data object that can be converted into a
+#' @param data a data object of a class that can be converted into a
 #'          \code{data.frame}
 #' @param columns names of the columns in \code{data}
 #'          to use as dimensions
@@ -17,16 +17,16 @@
 #'
 #' @export
 Datacomb <- function(
-  data, columns = colnames(data), rowLabel = NULL,
+  data = NULL, columns = colnames(data), rowLabel = NULL,
   width = '100%', height = '100%'
 ) {
 
   # try to be smart if row names are character
   #   and assume these will be rowLabel
-  if(is.character(rownames(dataFrame)) && is.null(rowLabel)) {
-    dataFrame = data.frame(
-      name = rownames(dataFrame),
-      dataFrame,
+  if(is.character(rownames(data)) && is.null(rowLabel)) {
+    data = data.frame(
+      name = rownames(data),
+      data,
       check.names = FALSE,
       stringsAsFactors = FALSE
     )
@@ -36,9 +36,14 @@ Datacomb <- function(
       rowLabel = "name"
     }
   }
+
+  if(!inherits(data, "data.frame")){
+    try({ data = as.data.frame(data, check.names = FALSE) })
+  }
+
   # build object of config options
   opts = list(
-    dataFrame = dataFrame,
+    data = data,
     columns = columns,
     rowLabel = rowLabel
   )
