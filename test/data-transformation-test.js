@@ -40,6 +40,27 @@ describe('Data transformation (passing rows through columns)', function() {
           parsedRow = parsed.rows[0];
       parsedRow._values[0].should.equal('EU');
     });
+    it('accepts custom sort orders', function() {
+      this.columns = [ {
+        label: 'Day of week',
+        accessor: 'day',
+        sortOrder: 'Mon Tue Wed Thu Fri Sat Sun'.split(' '),
+        type: 'discrete' } ];
+      this.rows = [
+        { first: 'c', day: 'Thu' },
+        { first: 'z', day: 'Red' }, // values not in sort order are -1
+        { first: 'a', day: 'Wed' },
+        { first: 'b', day: 'Sat' },
+        { first: 'a', day: 'Mon' },
+        { first: 'z', day: 'Sun' },
+        { first: 'z', day: 'Tue' } ];
+      var parsed = dataParser(this.rows, this.columns);
+      parsed.columns[0].should.have.property('sortOrder');
+      parsed.rows[0].should.have.property('_sortValues');
+      expect(parsed.rows[0]._sortValues[0]).to.equal(3);
+      expect(parsed.rows[1]._sortValues[0]).to.equal(-1);
+      expect(parsed.rows[2]._sortValues[0]).to.equal(2);
+    });
   });
 
   //

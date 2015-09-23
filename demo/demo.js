@@ -12,7 +12,8 @@ var columns = [
   {
     label: 'Pos',
     accessor: 'pos',
-    type: 'discrete'
+    type: 'discrete',
+    sortOrder: 'PG SG SF PF C'.split(' ')
   },
   {
     label: 'Age',

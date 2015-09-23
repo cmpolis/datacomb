@@ -267,7 +267,10 @@ Datacomb.prototype.getRows = function(opts) {
     // sort...
     if(opts.sort) {
       this.allRows = _.sortBy(this.allRows,
-        opts.sort.colNdx === -1 ? '_rowLabel' : '_values.'+opts.sort.colNdx);
+        opts.sort.colNdx === -1 ? '_rowLabel' :
+          this.parsed.columns[opts.sort.colNdx].sortOrder ?
+          '_sortValues.'+opts.sort.colNdx :
+          '_values.'+opts.sort.colNdx);
       opts.sort.desc && this.allRows.reverse();
     }
 

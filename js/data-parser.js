@@ -65,7 +65,7 @@ module.exports = function(rows, columns, labelAccessor) {
   //
   var value, widths, values, labels;
   var parsedRows = rows.map(function(row, ndx) {
-    widths = []; values = []; labels = []; discreteNdx = [];
+    widths = []; values = []; labels = []; discreteNdx = []; sortValues = [];
 
     parsedColumns.forEach(function(col, colNdx) {
       value = _.isString(col.accessor) ? row[col.accessor] : col.accessor(row, ndx);
@@ -75,11 +75,13 @@ module.exports = function(rows, columns, labelAccessor) {
       labels[colNdx] = col.format ? col.format(value) : value;
       if(col.type === 'discrete') {
         discreteNdx[colNdx] = col.uniqValues.indexOf(value);
+        if(col.sortOrder) { sortValues[colNdx] = col.sortOrder.indexOf(value); }
       }
     });
     return _.extend(row, {
       ndx: ndx,
       _values: values,
+      _sortValues: sortValues,
       _widths: widths,
       _labels: labels,
       _discreteNdx: discreteNdx,
