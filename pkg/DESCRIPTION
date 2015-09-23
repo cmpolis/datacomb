@@ -1,8 +1,24 @@
 Package: datacomb
-Title: Visual analysis tool for tabular data.
+Title: Visual Analysis Tool for Tabular Data
 Version: 1.0.0
-Authors@R: person("Chris", "Polis", email = "cmpolis@gmail.com", role = c("aut", "cre"))
-Description: Allows for visually combing thorugh datasets with filter, sort, groupBy functions. The interface can also be expanded to show histograms, summary statistics and scatter plots of columns.
-Depends: R (>= 3.1.3)
+Description:
+    Allows for visually combing through datasets with
+    filter, sort, and groupBy functions. The interface can also
+    be expanded to show histograms, scatter plots, and
+    summary statistics by column.
+Authors@R:
+    c(
+      person(
+        "Chris", "Polis",
+        email = "cmpolis@gmail.com",
+        role = c("aut", "cre")
+      ),
+      person("Kenton", "Russell", role = "ctb")
+    )
+URL: https://github.com/cmpolis/datacomb
+BugReports: https://github.com/cmpolis/datacomb/issues
+Depends: R (>= 3.0.0)
+Imports:
+    htmlwidgets (>= 0.3.2)
 License: MIT
 LazyData: true
