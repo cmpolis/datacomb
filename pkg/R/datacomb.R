@@ -1,13 +1,23 @@
 #' Datacomb
 #'
-#' An interface for viewing and combing through data frames.
+#' An interactive interface for viewing and combing through data frames.
+#'
+#' @param data a data object that can be converted into a
+#'          \code{data.frame}
+#' @param columns names of the columns in \code{data}
+#'          to use as dimensions
+#' @param rowLabel name of the column in \code{data}
+#'          that provides the row label
+#' @param width,height valid \code{CSS} size unit for the
+#'          width and height of the datacomb.  The default is
+#'          \code{100\%} to fill the entire viewing area.
 #'
 #' @example ./inst/examples/examples.R
 #' @import htmlwidgets
 #'
 #' @export
 Datacomb <- function(
-  dataFrame, columns = colnames(dataFrame), rowLabel = NULL,
+  data, columns = colnames(data), rowLabel = NULL,
   width = '100%', height = '100%'
 ) {
 
