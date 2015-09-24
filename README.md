@@ -41,6 +41,15 @@ An interactive tool for exploring large, tabular datasets.
 
 ### Usage
 
+
+#### As an `htmlwidget` in `R`
+
+```R
+devtools::install_github('cmpolis/datacomb', subdir='pkg');
+library(datacomb);
+Datacomb(iris)
+```
+
 #### With JavaScript, HTML:
 
 to build: ` $ npm install && npm run build`
@@ -100,15 +109,6 @@ var myDatacomb = new Datacomb({
   labelAccessor: 'name'
 
 });
-```
-
-
-#### As an R `htmlwidget`
-
-```R
-devtools::install_github('cmpolis/datacomb', subdir='pkg');
-library(datacomb);
-Datacomb(iris)
 ```
 
 
