@@ -16,3 +16,4 @@ build/
 # VIM is awesome
 *.swo
 *.swp
+.Rproj.user

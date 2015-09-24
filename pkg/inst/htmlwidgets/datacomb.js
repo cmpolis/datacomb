@@ -16,7 +16,7 @@ HTMLWidgets.widget({
     var _this = this;
 
     // TODO: error checking...
-    this.dataset = HTMLWidgets.dataframeToD3(opts.dataFrame);
+    this.dataset = HTMLWidgets.dataframeToD3(opts.data);
     this.columns = opts.columns.map(function(colName) {
       return {
         label: colName,
