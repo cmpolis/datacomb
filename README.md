@@ -106,10 +106,15 @@ var myDatacomb = new Datacomb({
 #### As an R `htmlwidget`
 
 ```R
+devtools::install_github('cmpolis/datacomb', subdir='pkg');
+library(datacomb);
+Datacomb(iris)
 ```
 
 
 ### Contributing
+
+Pull requests welcomed! However, please try to mention or ask about it as an issue to make sure what you are working on will be merged in and is not already in progress. 
 
 ```shell
 $ npm install
