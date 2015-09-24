@@ -1,7 +1,7 @@
-## DataComb
-An interactive tool for exploring large, tabular datasets.
+## Datacomb
+An interactive tool for analyzing, exploring and *combing* through tabular datasets.
 
-*Turn `JSON` or `CSV` into:*
+*Turn your data into:* *[live demo](http://www.bytemuse.com/datacomb/demo/)*
 ![datacomb preview](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/dc2-demo.gif)
 
 ### Usage
