@@ -35,7 +35,7 @@ var columns = [
 ];
 
 //
-d3.csv('../../data/nba-player-totals-20142015.csv')
+d3.csv('./data/nba-player-totals-20142015.csv')
 
   // Transform data, eg: type conversion, rename keys...
   .row(function(d) {

@@ -12,7 +12,7 @@ var d3 = require('d3');
 
 //
 var ColHeader = Ractive.extend({
-  template: require('./templates/col-header.hbs'),
+  template: require('../templates/col-header.hbs'),
   data: function() {
     return {
       label: 'Colname Undefined',

@@ -1,6 +1,7 @@
 //
 //
 // Filter array of parsed datacomb rows with filter array of objects
+//  see tests for data, filter formats
 
 //
 var _ = require('lodash');

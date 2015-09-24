@@ -8,7 +8,7 @@ var sinonChai = require('sinon-chai');
 var should = chai.should();
 var expect = require('chai').expect;
 var sampleData = require('./sample-data');
-var dataParser = require('../js/data-parser');
+var dataParser = require('../src/js/data-parser');
 chai.use(sinonChai);
 
 //

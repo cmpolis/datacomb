@@ -7,7 +7,7 @@ var sinon = require('sinon');
 var sinonChai = require('sinon-chai');
 var should = chai.should();
 var expect = require('chai').expect;
-var dataFilter = require('../js/data-filter');
+var dataFilter = require('../src/js/data-filter');
 chai.use(sinonChai);
 
 var sampleRows = [

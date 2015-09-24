@@ -1,6 +1,5 @@
 <!--
 Top level template and DOM structure for Datacomb.
-Copytight Chris Polis, 2015. All rights reserved.
 -->
 
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
@@ -87,65 +86,3 @@ Copytight Chris Polis, 2015. All rights reserved.
 
   <div class='dc-table'></div>
 </div>
-
-<!--
-<div class='dc-header' {{#if filtersOpen}}filtering{{/if}} {{#if statsOpen}}stats-open{{/if}}>
-  <div>
-
-  {{#if scatterPlotNdx !== -1}}
-    <ul class='dc-col-filters'>
-      <li>Scatter Plots for {{ cols[scatterPlotNdx].label }}</li>
-      {{#cols:colNdx}}
-      <li>
-        <ScatterPlot
-          xNdx=4
-          yNdx=5
-          height=160
-          width=160 />
-      </li>
-      {{/cols}}
-    </ul>
-  {{/if}}
--->
-
-
-  <!-- Column filters: max/min text inputs + slider (continous) or checkboxes (discrete)
-  {{#if filtersOpen}}
-    <ul class='dc-col-filters'>
-      <li>Filters:</li>
-      {{#cols:colNdx}}
-        <li {{#if type==='discrete'}}discrete{{/if}}>{{>colFilter}}</li>
-      {{/cols}}
-    </ul>
-  {{/if}}
-  -->
-
-  <!-- Column summary statistics: mean, median, std dev, min, max, etc...
-  {{#if statsOpen}}
-    <ul class='dc-col-stats'>
-      <li>Summary Stats</li>
-      {{#cols:colNdx}}
-        <li {{#if type==='discrete'}}discrete{{/if}}>{{>summaryStats}}</li>
-      {{/cols}}
-    </ul>
-  {{/if}}
-  -->
-
-  <!-- Column headers: label + controls + axis
-  <ul class='dc-col-headers'>
-    <li>
-      <ColHeader label="Row Label"
-        index={{-1}}
-        hoverValue={{ hoverRow._rowLabel }} /></li>
-    {{#cols:colNdx}}
-      <li><ColHeader
-        isDiscrete={{ type=='discrete' }}
-        min={{ cols[colNdx].min }}
-        max={{ cols[colNdx].max }}
-        label={{ label }}
-        index={{ colNdx }}
-        hoverValue={{ hoverRow._values[colNdx] }} /></li>
-    {{/cols}}
-  </ul>
-</div>
--->

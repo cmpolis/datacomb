@@ -9,6 +9,7 @@ node_modules/
 
 # built files ( run build command...)
 build/
+dist/
 
 # sass cache
 *.sass-cache*
@@ -16,4 +17,6 @@ build/
 # VIM is awesome
 *.swo
 *.swp
+
+# Rstats
 .Rproj.user

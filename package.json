@@ -6,7 +6,7 @@
   "scripts": {
     "test": "npm run build && mocha test/*-test.js",
     "serve": "./node_modules/serve/bin/serve -p 5050",
-    "build": "node ./node_modules/node-sass/bin/node-sass css -o build/css && node ./node_modules/browserify/bin/cmd.js js/datacomb.js -o build/datacomb.js -s Datacomb -t [stringify --extensions .css --extensions .hbs] && echo 'Done building.'"
+    "build": "node ./node_modules/node-sass/bin/node-sass src/css -o dist/css && node ./node_modules/browserify/bin/cmd.js src/js/datacomb.js -o dist/datacomb.js -s Datacomb -t [stringify --extensions .css --extensions .hbs] && echo 'Done building.'"
   },
   "repository": {
     "type": "git",

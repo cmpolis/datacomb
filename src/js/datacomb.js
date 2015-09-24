@@ -63,7 +63,6 @@ Datacomb.prototype.initManager = function() {
     self.applySort(colNdx, descOrder);
   });
   this.manager.on('*.show-scatter-plots', function(evt, scatterNdx) {
-    // self.applySort(colNdx, descOrder);
     var scatterCol = self.parsed.columns[scatterNdx];
     self.scatterNdx = scatterNdx;
     this.set('scatterPlotNdx', scatterNdx);
@@ -148,8 +147,8 @@ Datacomb.prototype.initTable = function() {
     buildRow: function(d) {
       var node = document.createElement('div');
       var nodeContent = "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
+
       node.classList.add('dc-row');
-      //node.setAttribute('dc-color-ndx', '');
       node._dcndx = d.ndx;
       var discreteColor;
       self.parsed.columns.forEach(function(column, colNdx) {
@@ -166,7 +165,6 @@ Datacomb.prototype.initTable = function() {
     updateRow: function(d, el) {
       el._dcndx = d.ndx;
       el.childNodes[0].childNodes[0].textContent = d._rowLabel;
-      //d._colorNdx ? el.setAttribute('dc-color-ndx', d._colorNdx) : el.removeAttribute('dc-color-ndx');
       (d.hovered || d.histogramHover) ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
       (d.hovered || d.focused || d.histogramHover) ?
         el.setAttribute('dc-expand', '') :
@@ -227,7 +225,6 @@ Datacomb.prototype.initTable = function() {
       else { return; }
     }
     self.focusRows(self.dragStartNdx, node._dcndx);
-    // console.log('done dragging...', self.dragStartNdx, node._dcndx);
   });
 
   //
