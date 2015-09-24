@@ -52,7 +52,7 @@ input[type=checkbox] {
     order: 0;
     align-self: stretch; }
   .dc-container .dc-table {
-    padding: 0 20px;
+    padding: 0 0 0 20px;
     order: 0;
     flex: 1 1 auto;
     align-self: stretch; }
