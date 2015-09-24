@@ -40,6 +40,9 @@ An interactive tool for exploring large, tabular datasets.
 ### Demo
 
 ### Usage
+
+#### With JavaScript, HTML:
+
 to build: ` $ npm install && npm run build`
 
 ```js
@@ -97,6 +100,12 @@ var myDatacomb = new Datacomb({
   labelAccessor: 'name'
 
 });
+```
+
+
+#### As an R `htmlwidget`
+
+```R
 ```
 
 
