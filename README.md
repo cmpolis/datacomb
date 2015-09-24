@@ -2,42 +2,7 @@
 An interactive tool for exploring large, tabular datasets.
 
 *Turn `JSON` or `CSV` into:*
-![datacomb preview](https://raw.githubusercontent.com/cmpolis/datacomb/master/poc-demo.gif)
-
-### Status, project todo, notes
-
-* **[IN PROGRESS]** v1/prototype:
-  * :thumbsup: project setup: can build, test, view in browser... 
-  * :thumbsup: (https://github.com/cmpolis/smart-table-scroll) table row reuse *(minimize # of <.row> DOM elements)*
-  * :thumbsup: table layout and properly sized bars
-  * :thumbsup: hover interaction
-  * :thumbsup: click interaction
-  * :thumbsup: drag interaction
-  * :thumbsup: filtering
-  * :thumbsup: sorting
-  * :thumbsup: scatter plots (canvas)
-  * :thumbsup: histograms
-  * :thumbsup: summary statistics
-  * :thumbsup: grouping (by discrete dimensions)
-  * :thumbsup: coloring (by discrete dimensions)
-* v2
-  * :x: expandable(full screen?) scatter plots
-  * :x: regressions in scatter plots
-  * :x: dynamic column addition, removal
-  * :x: custom column widths
-  * :x: functional column definitions from ui: eg: `areaCol: ${height} * ${width}`
-  * :x: axis labels
-  * :x: log scaling
-  * :x: quantize columns (continuous dim -> discrete dim)
-  * :x: illustrate filter response on histograms
-  * :x: illustrate filter response on scatter plots
-  * :x: close/expand groupings in table
-  * :construction: keyboard shortcuts
-* :construction: HTMLWidget/R package
-* :x: Serializable table configuration format. JSON?
-* :x: Natural language/DSL mode for table configuration, querying
-
-### Demo
+![datacomb preview](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/dc2-demo.gif)
 
 ### Usage
 
@@ -141,4 +106,38 @@ Demo dataset sources:
 * diamonds: https://vincentarelbundock.github.io/Rdatasets/datasets.html
 * nba players: http://www.basketball-reference.com/
 
-*Released under the MIT License.*
+### Status, project todo, notes
+
+* **[IN PROGRESS]** v1/prototype:
+  * :thumbsup: project setup: can build, test, view in browser... 
+  * :thumbsup: (https://github.com/cmpolis/smart-table-scroll) table row reuse *(minimize # of <.row> DOM elements)*
+  * :thumbsup: table layout and properly sized bars
+  * :thumbsup: hover interaction
+  * :thumbsup: click interaction
+  * :thumbsup: drag interaction
+  * :thumbsup: filtering
+  * :thumbsup: sorting
+  * :thumbsup: scatter plots (canvas)
+  * :thumbsup: histograms
+  * :thumbsup: summary statistics
+  * :thumbsup: grouping (by discrete dimensions)
+  * :thumbsup: coloring (by discrete dimensions)
+* v2
+  * :x: expandable(full screen?) scatter plots
+  * :x: regressions in scatter plots
+  * :x: dynamic column addition, removal
+  * :x: custom column widths
+  * :x: functional column definitions from ui: eg: `areaCol: ${height} * ${width}`
+  * :x: axis labels
+  * :x: log scaling
+  * :x: quantize columns (continuous dim -> discrete dim)
+  * :x: illustrate filter response on histograms
+  * :x: illustrate filter response on scatter plots
+  * :x: close/expand groupings in table
+  * :construction: keyboard shortcuts
+* :construction: HTMLWidget/R package
+* :x: Serializable table configuration format. JSON?
+* :x: Natural language/DSL mode for table configuration, querying
+
+
+#### Released under the MIT License.
