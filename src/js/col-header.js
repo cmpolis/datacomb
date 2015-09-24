@@ -38,10 +38,19 @@ var ColHeader = Ractive.extend({
 
       // build svg axis
       this.scale = d3.scale.linear();
+      this.yScale = d3.scale.linear();
+
+      //
       this.axis = d3.svg.axis().orient('top').ticks(3);
+      this.rAxis = d3.svg.axis().orient('right').ticks(3);
+      this.lAxis = d3.svg.axis().orient('left').ticks(3);
+
+      //
       this.axis.scale(this.scale);
+      this.rAxis.scale(this.yScale);
+      this.lAxis.scale(this.yScale);
       this.axisSvg = d3.select(this.el).select('.dc-ch-axis');
-      this.axisSvg.select('.ch-axis-g').append('line')
+      this.axisSvg.select('.ch-axis-g.bottom').append('line')
         .attr('class', 'axis-hover-line')
         .attr('x1', 10).attr('y1', 0)
         .attr('x2', 10).attr('y2', -24);
@@ -53,8 +62,15 @@ var ColHeader = Ractive.extend({
         this.scale
           .domain([this.get('min'), this.get('max')])
           .range([0, this.get('width')]);
-        this.axisSvg.select('.ch-axis-g')
+        this.yScale
+          .domain([this.get('min'), this.get('max')])
+          .range([this.get('width'), 0]);
+        this.axisSvg.select('.ch-axis-g.bottom')
           .call(this.axis);
+        this.axisSvg.select('.ch-axis-g.right')
+          .call(this.rAxis)
+        this.axisSvg.select('.ch-axis-g.left')
+          .call(this.lAxis);
       });
       var histogram = this.get('histogram'),
           histogramMax = this.get('histogramMax'),

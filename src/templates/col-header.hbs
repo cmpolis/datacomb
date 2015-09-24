@@ -109,7 +109,11 @@
         {{/if}}
 
         <!-- axis -->
-        <g class='ch-axis-g' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>
+        <g class='ch-axis-g bottom' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>
+        <g {{#if index !== scatterPlotNdx }}hidden{{/if}}>
+          <g class='ch-axis-g right' transform='translate(0,{{24-scatterHeight}})'></g>
+          <g class='ch-axis-g left' transform='translate({{width}},{{24-scatterHeight}})'></g>
+        </g>
 
     </svg>
   {{/if}}
