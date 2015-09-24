@@ -72,14 +72,17 @@ Top level template and DOM structure for Datacomb.
         statsOpen={{statsOpen}}
         statsOpen={{statsOpen}}
         scatterOpen={{scatterPlotNdx !== -1}}
+
         scatterPlotNdx={{scatterPlotNdx}}
+        scatterHeight={{ colWidth }}
+        scatterData={{ scatterArrays[colNdx] }}
+
         isDiscrete={{ type=='discrete' }}
         min={{ cols[colNdx].min }}
         max={{ cols[colNdx].max }}
         label={{ label }}
         index={{ colNdx }}
         filter={{ filters[colNdx] }}
-        scatterData={{ scatterArrays[colNdx] }}
         hoverValue={{ hoverRow._values[colNdx] }} /></li>
     {{/cols}}
   </ul>
