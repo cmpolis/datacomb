@@ -20,6 +20,18 @@ var columns = [
     accessor: 'age'
   },
   {
+    label: 'Blocks',
+    accessor: 'blk',
+  },
+  {
+    label: 'Steals',
+    accessor: 'stl',
+  },
+  {
+    label: 'Assists',
+    accessor: 'ast',
+  },
+  {
     label: 'Points',
     accessor: 'pts'
   },
@@ -45,7 +57,10 @@ d3.csv('./data/nba-player-totals-20142015.csv')
       pos:  d.Pos,
       age:  +d.Age,
       pts:  +d.PTS,
-      mp:   +d.MP
+      mp:   +d.MP,
+      blk:  +d.BLK,
+      ast:  +d.AST,
+      stl:  +d.STL,
     }; })
 
   // Have cleaned data, build UI

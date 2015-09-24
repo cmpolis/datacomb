@@ -30,7 +30,8 @@ var Datacomb = function(opts) {
   for(var key in opts) { this[key] = opts[key]; }
 
   //
-  this.width = this.width || this.el.getBoundingClientRect().width - 120;
+  this.width = this.width ||
+    this.el.getBoundingClientRect().width - (20 + (this.columns.length+1) * 12);
   this.colWidth = this.width / (this.columns.length + 1);
   this.groupByColNdx = -1;
   this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
