@@ -21,6 +21,15 @@ input[type=checkbox] {
   justify-content: flex-start;
   align-content: stretch;
   align-items: flex-start; }
+  .dc-container .sts-container {
+    overflow-y: scroll;
+    position: relative; }
+  .dc-container .sts-container .sts-row {
+    position: absolute; }
+  .dc-container .sts-container .sts-bottom-anchor {
+    position: absolute;
+    height: 1px;
+    width: 1px; }
   .dc-container * {
     user-select: none; }
   .dc-container * {

@@ -22,6 +22,11 @@ input[type=checkbox] {
 
 .datacomb { height: 100%; }
 .dc-container {
+
+  //
+  @import 'table-scroll';
+
+  //
   height: 100%;
   display: flex;
   flex-direction: column;
