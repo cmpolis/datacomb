@@ -5,7 +5,7 @@
 \title{Datacomb}
 \usage{
 Datacomb(data = NULL, columns = colnames(data), rowLabel = NULL,
-  width = "100\%", height = "100\%")
+  width = NULL, height = NULL)
 }
 \arguments{
 \item{data}{a data object of a class that can be converted into a
@@ -18,8 +18,7 @@ to use as dimensions}
 that provides the row label}
 
 \item{width,height}{valid \code{CSS} size unit for the
-         width and height of the datacomb.  The default is
-         \code{100\%} to fill the entire viewing area.}
+         width and height of the datacomb.}
 }
 \description{
 An interactive interface for viewing and combing through data frames.
