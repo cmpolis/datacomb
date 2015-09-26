@@ -44579,7 +44579,11 @@ Datacomb.prototype.initManager = function() {
     self.table.updateData(self.getRows());
   });
   this.manager.on('unfocus-all', function(evt) {
-    self.allRows.forEach(function(r) { r.focused = false; r.hovered = false; });
+    self.allRows.forEach(function(r) {
+      r.focused = false;
+      r.hovered = false;
+      r.histogramHover = false;
+    });
     self.table.updateData(self.getRows());
   });
 
