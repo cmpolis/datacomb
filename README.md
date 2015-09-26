@@ -1,10 +1,10 @@
-## Datacomb
-An interactive tool for analyzing, exploring and *combing* through tabular datasets.
+# Datacomb
+An interactive tool for analyzing, exploring and *combing* through tabular datasets. *by [@ChrisPolis](https://twitter.com/ChrisPolis)*
 
-*Turn your data into:* *[live demo](http://www.bytemuse.com/datacomb/demo/)*
+Turn **your** data into: *[live demo](http://www.bytemuse.com/datacomb/demo/)*
 ![datacomb preview](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/dc2-demo.gif)
 
-### Usage
+## Usage
 
 
 #### As an `htmlwidget` in `R`
@@ -15,7 +15,7 @@ library(datacomb);
 Datacomb(iris)
 ```
 
-#### With JavaScript, HTML:
+#### In a browser, with JavaScript:
 
 to build: ` $ npm install && npm run build`
 
@@ -75,9 +75,37 @@ var myDatacomb = new Datacomb({
 
 });
 ```
+## Catalog of Interactions
+
+##### Hover over rows to reveal exact values
+![hover](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/hover.gif)
+
+##### Sort by column(s)
+![sort](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/sort.gif)
+
+##### Filter rows visually with a slider or by specifiying exact bounds
+![filter](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/filter.gif)
+
+##### Click and drag to select rows to focus
+![focus](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/click-drag.gif)
+
+##### Show only selected rows to analyze a subset
+![focusonly](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/showfocused.gif)
+
+##### View distribution data for each column
+![histogram](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/histogram.gif)
+
+##### View summary statistics for each column
+![summary](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/summary.gif)
+
+##### View relationships between columns by creating scatter plots of a column and all other columns
+![scatter](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/scatter.gif)
+
+##### Group rows by discrete dimensions
+![group](https://raw.githubusercontent.com/cmpolis/datacomb/master/demo/interaction-gifs/group.gif)
 
 
-### Contributing
+## Contributing
 
 Pull requests welcomed! However, please try to mention or ask about it as an issue to make sure what you are working on will be merged in and is not already in progress. 
 
@@ -89,11 +117,11 @@ $ open http://localhost:5050/demo/
 ```
 
 
-### Testing
+## Testing
 ` $ npm test`
 
 
-### Resources
+## Resources
 
 Blog post, demo of prototype/old version: http://www.bytemuse.com/post/data-comb-visualization/
 
@@ -106,7 +134,7 @@ Demo dataset sources:
 * diamonds: https://vincentarelbundock.github.io/Rdatasets/datasets.html
 * nba players: http://www.basketball-reference.com/
 
-### Status, project todo, notes
+## Status, project todo, notes
 
 * **[IN PROGRESS]** v1/prototype:
   * :thumbsup: project setup: can build, test, view in browser... 
@@ -140,4 +168,4 @@ Demo dataset sources:
 * :x: Natural language/DSL mode for table configuration, querying
 
 
-#### Released under the MIT License.
+### Released under the MIT License.
