@@ -9,8 +9,7 @@
 #' @param rowLabel name of the column in \code{data}
 #'          that provides the row label
 #' @param width,height valid \code{CSS} size unit for the
-#'          width and height of the datacomb.  The default is
-#'          \code{100\%} to fill the entire viewing area.
+#'          width and height of the datacomb.
 #'
 #' @example ./inst/examples/examples.R
 #' @import htmlwidgets
@@ -18,7 +17,7 @@
 #' @export
 Datacomb <- function(
   data = NULL, columns = colnames(data), rowLabel = NULL,
-  width = '100%', height = '100%'
+  width = NULL, height = NULL
 ) {
 
   # try to be smart if row names are character
