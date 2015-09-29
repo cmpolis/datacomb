@@ -17,7 +17,7 @@
 #' @export
 Datacomb <- function(
   data = NULL, columns = colnames(data), rowLabel = NULL,
-  width = NULL, height = NULL
+  width = NULL, height = '100%'
 ) {
 
   # try to be smart if row names are character
