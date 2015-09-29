@@ -10,7 +10,7 @@ Turn **your** data into: *[live demo](http://www.bytemuse.com/datacomb/demo/)*
 #### As an `htmlwidget` in `R`
 
 ```R
-devtools::install_github('cmpolis/datacomb', subdir='pkg');
+devtools::install_github('cmpolis/datacomb', subdir='pkg', ref='1.1.2');
 library(datacomb);
 Datacomb(iris)
 ```
