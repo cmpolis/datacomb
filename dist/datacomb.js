@@ -42095,6 +42095,726 @@ module.exports = RangeSlider;
 
 
 },{}],9:[function(require,module,exports){
+//
+//
+//
+//
+//
+
+//
+var Ractive = require('ractive');
+var CanvasDPIScaler = require('canvas-dpi-scaler');
+var _ = require('lodash');
+var d3 = require('d3');
+
+//
+var ColHeader = Ractive.extend({
+  template: require('../templates/col-header.hbs'),
+  data: function() {
+    return {
+      label: 'Colname Undefined',
+      isDiscrete: true,
+      index: 0,
+      min: 0,
+      max: 1,
+      width: 160,
+      histogramHeight: 80,
+      scatterHeight: 160,
+      hoverValue: 0,
+      filter: {},
+      filtersOpen: false,
+      statsOpen: false,
+      histogramBarData: [],
+      scatterData: []
+    };
+  },
+  onrender: function() {
+    var self = this;
+
+    if(!this.get('isDiscrete')) {
+
+      // build svg axis
+      this.scale = d3.scale.linear();
+      this.yScale = d3.scale.linear();
+
+      //
+      this.axis = d3.svg.axis().orient('top').ticks(3);
+      this.rAxis = d3.svg.axis().orient('right').ticks(3);
+      this.lAxis = d3.svg.axis().orient('left').ticks(3);
+
+      //
+      this.axis.scale(this.scale);
+      this.rAxis.scale(this.yScale);
+      this.lAxis.scale(this.yScale);
+      this.axisSvg = d3.select(this.el).select('.dc-ch-axis');
+      this.axisSvg.select('.ch-axis-g.bottom').append('line')
+        .attr('class', 'axis-hover-line')
+        .attr('x1', 10).attr('y1', 0)
+        .attr('x2', 10).attr('y2', -24);
+
+      // update axis on data bounds, width changes
+      this.observe('min max width', function() {
+        if(this.get('isDiscrete')) { return; }
+
+        this.scale
+          .domain([this.get('min'), this.get('max')])
+          .range([0, this.get('width')]);
+        this.yScale
+          .domain([this.get('min'), this.get('max')])
+          .range([this.get('width'), 0]);
+        this.axisSvg.select('.ch-axis-g.bottom')
+          .call(this.axis);
+        this.axisSvg.select('.ch-axis-g.right')
+          .call(this.rAxis)
+        this.axisSvg.select('.ch-axis-g.left')
+          .call(this.lAxis);
+      });
+      var histogram = this.get('histogram'),
+          histogramMax = this.get('histogramMax'),
+          histogramHeight = this.get('histogramHeight');
+      this.set('histogramBarData', histogram.map(function(bin) {
+        return _.extend(bin, {
+          x0: self.scale(bin.lower),
+          x1: self.scale(bin.upper),
+          height: (bin.count / histogramMax) * histogramHeight
+        });
+      }));
+
+      // move hover slider
+      this.observe('hoverValue', function(newHoverValue) {
+        var pxValue = this.scale(newHoverValue);
+        this.axisSvg.select('.axis-hover-line')
+          .attr('x1', pxValue-1)
+          .attr('x2', pxValue-1);
+      });
+
+      // build scatter plot
+      this.canvas = this.el.querySelector('canvas'),
+      this.context = this.canvas.getContext('2d');
+      CanvasDPIScaler(this.canvas, this.context, this.get('width'), this.get('scatterHeight'));
+      this.observe('scatterData', function(points) {
+        var height = this.get('scatterHeight'),
+            width = this.get('width'),
+            radius = 2.5,
+            canvas = this.canvas, //= this.el.querySelector('canvas'),
+            context = this.context; //= this.canvas.getContext('2d');
+
+        // TODO: clean up this rendering, generalize...
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.globalAlpha = 0.23;
+        context.fillStyle = '#1166B7';
+        points.forEach(function(point, ndx) {
+          context.beginPath();
+          context.arc(point[1] * (width / 100),
+                      (100 - point[0]) * (height / 100),
+                      radius,
+                      0,
+                      2 * Math.PI,
+                      false);
+          context.fillStyle = point[2] ? 'red' : '#1166B7';
+          if(point[3]) { context.fillStyle = 'purple'; }
+          context.globalAlpha = point[3] ? 1 : point[2] ? 0.28 : 0.13;
+          context.fill();
+        });
+
+      }, { init: false });
+    }
+  }
+});
+
+//
+module.exports = ColHeader;
+
+},{"../templates/col-header.hbs":16,"canvas-dpi-scaler":1,"d3":2,"lodash":4,"ractive":8}],10:[function(require,module,exports){
+//
+//
+// Filter array of parsed datacomb rows with filter array of objects
+//  see tests for data, filter formats
+
+//
+var _ = require('lodash');
+
+//
+module.exports = function(rows, filters) {
+  return rows.filter(function(row) {
+    return _.all(filters, function(filter, colNdx) {
+      return filter.toggled ?
+        (filter.toggled[row._values[colNdx]]) :
+        (row._values[colNdx] >= filter.gt && row._values[colNdx] <= filter.lt);
+    });
+  });
+};
+
+},{"lodash":4}],11:[function(require,module,exports){
+//
+//
+// Pass row data through column definitions to build usable columns and rows
+
+//
+var _ = require('lodash'),
+    jStat = require('jStat').jStat,
+    d3 = require('d3');
+
+// settings
+var histogramBins = 20;
+
+//
+module.exports = function(rows, columns, labelAccessor) {
+  labelAccessor = labelAccessor || function(d, ndx) { return ''+ndx; };
+  if(_.isString(labelAccessor)) { labelAccessor = _.property(labelAccessor); }
+
+  //
+  var values, value, mean, median, sd;
+  var parsedColumns = columns.map(function(column, ndx) {
+
+    // Collect values from each row
+    values = _.map(rows, column.accessor);
+
+    // Discrete column, eg: team name, position, letter grade
+    if(column.type === 'discrete') {
+      return _.extend(column, {
+        ndx: ndx,
+        uniqValues: _.uniq(values).sort()
+      });
+
+
+    // Continuous column, numeric value, eg: points, age, etc...
+    } else {
+      column.min = _.min(values);
+      column.max = _.max(values);
+
+      return _.extend(column, {
+        ndx: ndx,
+        mean: d3.mean(values),
+        median: d3.median(values),
+        sd: d3.deviation(values),
+        histogram: jStat.histogram(values, histogramBins).map(function(count, binNdx) {
+          return {
+            count: count,
+            colNdx: ndx,
+            lower: column.min + ((binNdx / histogramBins) * (column.max - column.min)),
+            upper: column.min + (((binNdx+1) / histogramBins) * (column.max - column.min))
+          }
+        }),
+        widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
+      });
+    }
+  });
+
+  // need to find largest common histogram bin count for common y axis
+  var histogramMax = _.max(
+    _(parsedColumns)
+      .map('histogram')
+      .compact()
+      .flatten()
+      .map('count')
+      .value() );
+
+  //
+  var value, widths, values, labels;
+  var parsedRows = rows.map(function(row, ndx) {
+    widths = []; values = []; labels = []; discreteNdx = []; sortValues = [];
+
+    parsedColumns.forEach(function(col, colNdx) {
+      value = _.isString(col.accessor) ? row[col.accessor] : col.accessor(row, ndx);
+
+      values[colNdx] = value;
+      widths[colNdx] = (col.type === 'discrete') ? 0 : col.widthFn(value);
+      labels[colNdx] = col.format ? col.format(value) : value;
+      if(col.type === 'discrete') {
+        discreteNdx[colNdx] = col.uniqValues.indexOf(value);
+        if(col.sortOrder) { sortValues[colNdx] = col.sortOrder.indexOf(value); }
+      }
+    });
+    return _.extend(row, {
+      ndx: ndx,
+      _values: values,
+      _sortValues: sortValues,
+      _widths: widths,
+      _labels: labels,
+      _discreteNdx: discreteNdx,
+      _rowLabel: labelAccessor(row, ndx),
+      _colorNdx: ''
+    });
+  });
+
+  return {
+    columns: parsedColumns,
+    histogramMax: histogramMax,
+    rows: parsedRows
+  };
+};
+
+},{"d3":2,"jStat":3,"lodash":4}],12:[function(require,module,exports){
+//
+//
+// Datacomb interface class
+
+//
+"use strict";
+
+// NPM deps
+var ScrollableTable = require('smart-table-scroll');
+var Ractive = require('ractive');
+var _ = require('lodash');
+
+// local deps
+var dataParser = require('./data-parser');
+var dataFilter = require('./data-filter');
+var Manager = require('./manager');
+var palette = require('./palette').light12;
+
+//
+var defaults = { };
+
+//
+var Datacomb = function(opts) {
+  if(!opts.el) { throw new Error("Need to pass `el` into Datacomb."); }
+  if(!opts.data) { throw new Error("Need to pass `data` into Datacomb."); }
+  if(!opts.columns) { throw new Error("Need to pass `columns` into Datacomb."); }
+
+  // inherit from options, defaults
+  for(var key in defaults) { this[key] = defaults[key]; }
+  for(var key in opts) { this[key] = opts[key]; }
+
+  //
+  this.width = this.width ||
+    this.el.getBoundingClientRect().width - (20 + (this.columns.length+1) * 12);
+  this.colWidth = this.width / (this.columns.length + 1);
+  this.groupByColNdx = -1;
+  this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
+  this.allRows = this.parsed.rows;
+  this.pipelinedRows = this.allRows;
+
+  //
+  this.initManager();
+  this.initTable();
+};
+
+//
+Datacomb.prototype.initManager = function() {
+  var self = this;
+
+  // init Ractive element to build dom, handle settings and interaction
+  this.manager = new Manager({
+    el: this.el,
+    data: {
+      cols: this.parsed.columns,
+      histogramMax: this.parsed.histogramMax,
+      scatterArrays: [],
+      colWidth: this.colWidth
+    }
+  });
+
+  // this.manager.observe('sortColNdx sortDesc', this.applySort.bind(this), { init: false });
+  this.manager.observe('filters', this.applyFilters.bind(this), { init: false });
+  this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
+    self.applySort(colNdx, descOrder);
+  });
+  this.manager.on('*.show-scatter-plots', function(evt, scatterNdx) {
+    var scatterCol = self.parsed.columns[scatterNdx];
+    self.scatterNdx = scatterNdx;
+    this.set('scatterPlotNdx', scatterNdx);
+    this.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
+      return col.type === 'discrete' ? null :
+        self.allRows.map(function(row) {
+          return [ scatterCol.widthFn(row._values[scatterNdx]),
+                   col.widthFn(row._values[ndx]),
+                   (row.focused && !row.filtered), // highlight
+                   (row.hovered) // hover
+                 ];
+        });
+    }));
+  });
+
+  // click histogram bar
+  this.manager.on('*.focus-histogram', function(evt, colNdx, lower, upper) {
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      if(self.allRows[ndx]._values[colNdx] <= upper &&
+         self.allRows[ndx]._values[colNdx] >= lower) {
+        self.allRows[ndx].focused = true;
+      }
+    }
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.table.updateData(self.getRows({ force: true }));
+  });
+
+  // hover histogram bar
+  this.manager.on('*.hover-histogram', function(evt, colNdx, lower, upper) {
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      self.allRows[ndx].histogramHover =
+         (self.allRows[ndx]._values[colNdx] <= upper &&
+          self.allRows[ndx]._values[colNdx] >= lower);
+    }
+    self.table.updateData(self.getRows({ force: true }));
+  });
+  this.manager.observe('histogramsOpen', function() {
+    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
+      self.allRows[ndx].histogramHover = false;
+    }
+    self.table.updateData(self.getRows({ force: true }));
+  }, { init: false });
+
+  this.manager.observe('focusOnHover', function(shouldFocus) {
+    if(!shouldFocus) {
+      self.allRows[self.currentHoverNdx].hovered = false;
+      self.table.updateData(self.getRows());
+    }
+  }, { init: false });
+  this.manager.observe('groupByColNdx', function(colNdx) {
+    self.table.updateData(self.getRows({ groupByColNdx: colNdx }));
+  }, { init: false });
+  this.manager.observe('colorByColNdx', function(colNdx) {
+    self.table.updateData(self.getRows({ colorByColNdx: colNdx }));
+  }, { init: false });
+  this.manager.observe('hideUnfocused', function(shouldHide) {
+    self.table.updateData(self.getRows({ hideUnfocused: shouldHide }));
+  }, { init: false });
+  this.manager.on('focus-all', function(evt) {
+    self.allRows.forEach(function(r) { r.focused = true; });
+    self.table.updateData(self.getRows());
+  });
+  this.manager.on('unfocus-all', function(evt) {
+    self.allRows.forEach(function(r) {
+      r.focused = false;
+      r.hovered = false;
+      r.histogramHover = false;
+    });
+    self.table.updateData(self.getRows());
+  });
+
+};
+
+//
+//
+
+//
+Datacomb.prototype.initTable = function() {
+  var self = this;
+
+  this.table = new ScrollableTable({
+    el: this.el.querySelector('.dc-table'),
+    data: this.allRows,
+    availableNodes: 1000,
+    heightFn: function(d) { return (d.hovered || d.focused || d.histogramHover) ? 17 : 4; },
+    buildRow: function(d) {
+      var node = document.createElement('div');
+      var nodeContent = "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
+
+      node.classList.add('dc-row');
+      node._dcndx = d.ndx;
+      var discreteColor;
+      self.parsed.columns.forEach(function(column, colNdx) {
+        if(column.type === 'discrete') {
+          discreteColor = palette[d._discreteNdx[colNdx] % palette.length];
+          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='disc'><div class='dc-bar' style='background-color:"+discreteColor+";'></div><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
+        } else {
+          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
+        }
+      });
+      node.innerHTML = nodeContent;
+      return node;
+    },
+    updateRow: function(d, el) {
+      el._dcndx = d.ndx;
+      el.childNodes[0].childNodes[0].textContent = d._rowLabel;
+      (d.hovered || d.histogramHover) ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
+      (d.hovered || d.focused || d.histogramHover) ?
+        el.setAttribute('dc-expand', '') :
+        el.removeAttribute('dc-expand');
+
+      for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
+        if(self.parsed.columns[colNdx].type === 'discrete') {
+          el.childNodes[colNdx + 1].childNodes[0].style.backgroundColor = palette[d._discreteNdx[colNdx] % palette.length];
+          el.childNodes[colNdx + 1].childNodes[1].textContent = d._values[colNdx];
+
+        } else {
+          el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
+          el.childNodes[colNdx+1].childNodes[0].style.backgroundColor =
+            (d._colorNdx || d._colorNdx === 0) ? palette[d._colorNdx % palette.length] : null;
+          el.childNodes[colNdx + 1].childNodes[1].textContent = d._labels[colNdx];
+
+        }
+      }
+    }
+  });
+
+  this.currentHoverNdx = 0;
+  this.isDragging = false;
+
+  // Hover interaction: highlight row
+  this.table.el.addEventListener('mouseover', function(evt) {
+    if(!self.manager.get('focusOnHover')) { return; }
+    var node = evt.target;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.allRows[node._dcndx].hovered = true;
+    self.currentHoverNdx = node._dcndx;
+    self.manager.set('hoverRow', self.allRows[node._dcndx]);
+    self.table.updateData(self.getRows());
+
+    // Drag actions
+    if(evt.buttons) {
+      self.allRows[node._dcndx].focused = !self.allRows[node._dcndx].focused;
+    }
+  });
+
+  // Drag interaction: focus multiple rows
+  this.table.el.addEventListener('mousedown', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    self.dragStartNdx = node._dcndx;
+  });
+  this.table.el.addEventListener('mouseup', function(evt) {
+    var node = evt.srcElement;
+    while(node._dcndx === undefined) {
+      if(node.parentNode) { node = node.parentNode; }
+      else { return; }
+    }
+    self.focusRows(self.dragStartNdx, node._dcndx);
+  });
+
+  //
+  this.focusRows = function(ndxA, ndxB) {
+    var minNdx = Math.min(ndxA, ndxB),
+        maxNdx = Math.max(ndxA, ndxB),
+        forceUpdate = false;
+
+    // Single row selection - toggle
+    if(minNdx === maxNdx) {
+      self.allRows[minNdx].focused = !self.allRows[minNdx].focused;
+      forceUpdate = !self.allRows[minNdx].focused && this.hideUnfocused;
+
+    // Multiple row selection - more complicated logic???
+    //   all selected -> unselect
+    //   some selected -> select
+    //   none selected -> select
+    } else {
+      for(var ndx = minNdx; ndx < maxNdx; ndx++) {
+        if(!self.allRows[ndx].filtered) {
+          self.allRows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
+        }
+      }
+    }
+    self.allRows[self.currentHoverNdx].hovered = false;
+    self.table.updateData(self.getRows(forceUpdate ? { force: true } : null));
+  };
+};
+
+// Run data through pipeline if neccesary: sort -> filter -> group -> ...
+Datacomb.prototype.getRows = function(opts) {
+  var self = this;
+
+  // Something changed, run data through pipeline...
+  if(opts) {
+
+    // sort...
+    if(opts.sort) {
+      this.allRows = _.sortBy(this.allRows,
+        opts.sort.colNdx === -1 ? '_rowLabel' :
+          this.parsed.columns[opts.sort.colNdx].sortOrder ?
+          '_sortValues.'+opts.sort.colNdx :
+          '_values.'+opts.sort.colNdx);
+      opts.sort.desc && this.allRows.reverse();
+    }
+
+    // groupBy...
+    if(opts.groupByColNdx !== undefined) { this.groupByColNdx = opts.groupByColNdx; }
+    if(this.groupByColNdx !== -1) {
+      this.allRows = opts.sort ?
+        _.sortByOrder(this.allRows,
+          ['_values.'+this.groupByColNdx, '_values.'+opts.sort.colNdx],
+          [true, !opts.sort.desc]) :
+        _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
+    }
+
+    // colorBy...
+    if(opts.colorByColNdx !== undefined) { this.colorByColNdx = opts.colorByColNdx; }
+
+    this.allRows.forEach(function(d, ndx) {
+      d.ndx = ndx;
+      d._colorNdx = self.colorByColNdx !== -1 ? d._discreteNdx[self.colorByColNdx] : null;
+      d.hovered = false;
+      d.filtered = true; });
+
+    // filter...
+    this.filters = opts.filters || this.filters;
+    this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
+
+    // `hide unfocused`
+    if(opts.hideUnfocused !== undefined) { this.hideUnfocused = opts.hideUnfocused; }
+    if(this.hideUnfocused) {
+      this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
+    }
+  }
+  this.pipelinedRows.forEach(function(d) { d.filtered = false; });
+
+  // update scatter plots...
+  if(this.scatterNdx >= 0) {
+    var scatterCol = self.parsed.columns[self.scatterNdx];
+    this.manager.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
+      return col.type === 'discrete' ? null :
+        self.allRows.map(function(row) {
+          return [ scatterCol.widthFn(row._values[self.scatterNdx]),
+                   col.widthFn(row._values[ndx]),
+                   (row.focused && !row.filtered), // highlight
+                   (row.hovered) // hover
+                 ];
+        });
+    }));
+  }
+
+  return this.pipelinedRows;
+};
+
+//
+Datacomb.prototype.applySort = function(colNdx, desc) {
+  this.table.updateData(this.getRows({
+    sort: { colNdx: colNdx, desc: desc }
+  }));
+};
+
+//
+Datacomb.prototype.applyFilters = function(filters) {
+  this.table.updateData(this.getRows({
+    filters: filters
+  }));
+};
+
+//
+module.exports = Datacomb;
+
+},{"./data-filter":10,"./data-parser":11,"./manager":13,"./palette":14,"lodash":4,"ractive":8,"smart-table-scroll":34}],13:[function(require,module,exports){
+//
+//
+//
+//
+//
+
+//
+var Ractive = require('ractive');
+var _ = require('lodash');
+var d3 = require('d3');
+
+//
+var ColHeader = require('./col-header');
+var RangeSlider = require('ractive-range-slider');
+
+//
+var Manager = Ractive.extend({
+  template: require('../templates/datacomb.hbs'),
+  partials: {
+    colFilter: require('../templates/col-filter.hbs'),
+    summaryStats: require('../templates/summary-stats.hbs')
+  },
+  components: {
+    ColHeader: ColHeader,
+    RangeSlider: RangeSlider
+  },
+
+  //
+  data: function() {
+    return {
+      sortColNdx: null,
+      sortDesc: false,
+      focusOnHover: true,
+      hideUnfocused: false,
+      filtersOpen: false,
+      statsOpen: false,
+      histogramsOpen: false,
+      hoverValues: [],
+      cols: [],
+      filters: [],
+      groupByColNdx: -1,
+      colorByColNdx: -1,
+      scatterPlotNdx: -1
+    };
+  },
+
+  //
+  computed: {
+    discreteCols: function() {
+      return _.where(this.get('cols'), { type: 'discrete' });
+    }
+  },
+
+  //
+  onrender: function() {
+
+    // reset filters back to initial state
+    this.resetFilters = function(cols) {
+      this.set('filters',
+        cols.map(function(col) {
+          if(col.type === 'discrete') {
+            var toggled = {}; // build new obj with T/F values
+            col.uniqValues.forEach(function(v) { toggled[v] = true; });
+            return { toggled: toggled };
+          } else {
+            return { gt: col.min, lt: col.max };
+          }
+        })
+      );
+    };
+    this.observe('cols', this.resetFilters);
+    this.on('*.reset-filters', function() {
+      this.resetFilters(this.get('cols'));
+    });
+  }
+});
+
+module.exports = Manager;
+
+},{"../templates/col-filter.hbs":15,"../templates/datacomb.hbs":17,"../templates/summary-stats.hbs":18,"./col-header":9,"d3":2,"lodash":4,"ractive":8,"ractive-range-slider":7}],14:[function(require,module,exports){
+//
+//
+//
+
+module.exports = {
+
+  // generated from http://tools.medialab.sciences-po.fr/iwanthue/
+  // settings: soft (k-means) + defaults
+  light12: ["#CD5AD0",
+            "#80CE51",
+            "#4B3444",
+            "#97A4C0",
+            "#506032",
+            "#CEAE40",
+            "#BF4932",
+            "#6CCDB1",
+            "#BB4C82",
+            "#726ABE",
+            "#BC7E6D",
+            "#C1C896"],
+
+  light8: ["#A95CC5",
+           "#C36534",
+           "#7A87B5",
+           "#9AC347",
+           "#4C4335",
+           "#76C49B",
+           "#B34A72",
+           "#CAB098"]
+};
+
+},{}],15:[function(require,module,exports){
+module.exports = "\n{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      <input type='checkbox' checked={{filters[colNdx].toggled[.]}} /> {{ . }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <div class='filter-text'>\n    <input type='text' value={{ filters[colNdx].gt }} />\n    to\n    <input type='text' value={{ filters[colNdx].lt }} />\n  </div>\n  <RangeSlider\n    width=160\n    lowerBound={{cols[colNdx].min}}\n    upperBound={{cols[colNdx].max}}\n    lower={{filters[colNdx].gt}}\n    upper={{filters[colNdx].lt}}\n    step={{ (cols[colNdx].max / cols[colNdx].min) / 100}} />\n{{/if}}\n";
+
+},{}],16:[function(require,module,exports){
+module.exports = "<div class='dc-col-header' style='width:{{width}}px;' {{#if isDiscrete}}discrete{{/if}}>\n  <h4>\n    {{label}}\n    <button class='col-action' on-click='sort-by-col:{{index}},false'>\n      {{#if isDiscrete || index === -1}}\n        <i class='fa fa-sort-alpha-asc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-asc'></i>\n      {{/if}}\n    </button>\n    <button class='col-action' on-click='sort-by-col:{{index}},true'>\n      {{#if isDiscrete }}\n        <i class='fa fa-sort-alpha-desc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-desc'></i>\n      {{/if}}\n    </button>\n    {{#if !isDiscrete }}\n      {{#if scatterPlotNdx === index}}\n        <button class='col-action' on-click='set(\"scatterPlotNdx\",-1)'>\n          <i class='fa fa-times-circle-o'></i>\n        </button>\n      {{else}}\n        <button class='col-action' on-click='show-scatter-plots:{{index}}'>\n          <i class='fa fa-circle-o'></i>\n        </button>\n      {{/if}}\n    {{/if}}\n  </h4>\n\n\n  <!-- filters -->\n  <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>\n    {{#if index === -1}}\n      <button class='dc-btn dc-warn' on-click='reset-filters'>\n        <i class='fa fa-close'></i>\n        Reset filters\n      </button>\n\n    {{elseif isDiscrete }}\n      <button on-click='set(\"filter.toggled.*\", true)' class='col-action'>All</button> / <button on-click='set(\"filter.toggled.*\", false)' class='col-action'>None</button>\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          <input type='checkbox' checked={{filter.toggled[.]}} /> {{ . }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n\n    {{else}}\n      <div class='filter-text'>\n        <input type='text' value={{ filter.gt }} />\n        to\n        <input type='text' value={{ filter.lt }} />\n      </div>\n      <RangeSlider\n        width={{ width}}\n        lowerBound={{min}}\n        upperBound={{max}}\n        lower={{filter.gt}}\n        upper={{filter.lt}}\n        step={{ (max / min) / 100}} />\n    {{/if}}\n  </div>\n\n  <!-- summary stats -->\n  <div {{#if !statsOpen }}hidden{{/if}}>\n    {{#if isDiscrete }}\n      {{#if false }}\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          {{ label }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n      {{/if}}\n    {{else}}\n      <ul class='stat-list'>\n        <li>Min: <b>{{ min.toFixed(2) }}</b></li>\n        <li>Max: <b>{{ max.toFixed(2) }}</b></li>\n        <li>Mean: <b>{{ mean.toFixed(2) }}</b></li>\n        <li>Med: <b>{{ median.toFixed(2) }}</b></li>\n        <li>Std Dev: <b>{{ sd.toFixed(2) }}</b></li>\n      </ul>\n    {{/if}}\n  </div>\n\n\n\n  <!-- svg, canvas elements -->\n  {{#if isDiscrete}}\n    <div class='disc-value'>{{hoverValue}}</div>\n  {{else}}\n  <canvas class='dc-col-scatter' width={{width}} height={{scatterHeight}} {{#if !scatterOpen}}hidden{{/if}}></canvas>\n    <svg class='dc-ch-axis dc-histogram' height='{{histogramsOpen ? 78 : 22}}' width='{{width}}'>\n        <!-- histograms -->\n        {{#if !isDiscrete }}\n        <g {{#if !histogramsOpen }}hidden{{/if}}>\n          {{#histogramBarData}}\n            <rect x={{x0}}\n                  y={{histogramHeight-height}}\n                  width={{x1-x0}}\n                  height={{height}}\n                  on-mouseover='hover-histogram:{{index}},{{lower}},{{upper}}'\n                  on-click='focus-histogram:{{index}},{{lower}},{{upper}}' />\n          {{/histogramBarData}}\n        </g>\n        {{/if}}\n\n        <!-- axis -->\n        <g class='ch-axis-g bottom' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>\n        <g {{#if index !== scatterPlotNdx }}hidden{{/if}}>\n          <g class='ch-axis-g right' transform='translate(0,{{24-scatterHeight}})'></g>\n          <g class='ch-axis-g left' transform='translate({{width}},{{24-scatterHeight}})'></g>\n        </g>\n\n    </svg>\n  {{/if}}\n\n</div>\n";
+
+},{}],17:[function(require,module,exports){
+module.exports = "<!--\nTop level template and DOM structure for Datacomb.\n-->\n\n<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css\">\n\n{{#partial discreteColumnOptions}}\n  <option value='-1'>None</option>\n  {{#discreteCols}}\n    <option value={{ndx}}>{{label}}</option>\n  {{/discreteCols}}\n{{/partial}}\n\n<div class='dc-container'>\n  <div class='dc-top-controls'>\n    <label>\n      <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover\n    </label>\n    <label>\n      <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused\n    </label>\n    <button class='dc-btn'\n            on-click='toggle(\"filtersOpen\")'\n            {{#if filtersOpen}}opened{{/if}} >\n      <i class='fa fa-filter'></i>\n      {{#if filtersOpen}}Hide{{else}}Show{{/if}} Filters\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"statsOpen\")'\n            {{#if statsOpen}}opened{{/if}} >\n      <i class='fa fa-list'></i>\n      {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"histogramsOpen\")'\n            {{#if histogramsOpen}}opened{{/if}} >\n      <i class='fa fa-bar-chart'></i>\n      {{#if histogramsOpen}}Hide{{else}}Show{{/if}} Histograms\n    </button>\n    <button class='dc-btn' on-click='focus-all'>\n      <i class='fa fa-arrows-v'></i>\n      Focus All\n    </button>\n    <button class='dc-btn' on-click='unfocus-all'>\n      <i class='fa fa-minus'></i>\n      Unfocus All\n    </button>\n\n    <label>Group By: </label>\n    <select value={{groupByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n\n    <label>Color By: </label>\n    <select value={{colorByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n  </div>\n\n  <ul class='dc-col-headers'>\n    <li>\n      <ColHeader label=\"Row Label\"\n        width={{ colWidth}}\n        index={{-1}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        hoverValue={{ hoverRow._rowLabel }} /></li>\n    {{#cols:colNdx}}\n      <li><ColHeader\n        width={{ colWidth}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        statsOpen={{statsOpen}}\n        scatterOpen={{scatterPlotNdx !== -1}}\n\n        scatterPlotNdx={{scatterPlotNdx}}\n        scatterHeight={{ colWidth }}\n        scatterData={{ scatterArrays[colNdx] }}\n\n        isDiscrete={{ type=='discrete' }}\n        min={{ cols[colNdx].min }}\n        max={{ cols[colNdx].max }}\n        label={{ label }}\n        index={{ colNdx }}\n        filter={{ filters[colNdx] }}\n        hoverValue={{ hoverRow._values[colNdx] }} /></li>\n    {{/cols}}\n  </ul>\n\n  <div class='dc-table'></div>\n</div>\n";
+
+},{}],18:[function(require,module,exports){
+module.exports = "{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      {{ label }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <ul class='stat-list'>\n    <li>Min: {{ min.toFixed(2) }}</li>\n    <li>Max: {{ max.toFixed(2) }}</li>\n    <li>Mean: {{ mean.toFixed(2) }}</li>\n    <li>Med: {{ median.toFixed(2) }}</li>\n    <li>Std Dev: {{ sd.toFixed(2) }}</li>\n  </ul>\n{{/if}}\n";
+
+},{}],19:[function(require,module,exports){
 /**
  * lodash 3.1.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -42174,7 +42894,7 @@ var sortedIndex = createSortedIndex();
 
 module.exports = sortedIndex;
 
-},{"lodash._basecallback":10,"lodash._binaryindex":21,"lodash._binaryindexby":22}],10:[function(require,module,exports){
+},{"lodash._basecallback":20,"lodash._binaryindex":31,"lodash._binaryindexby":32}],20:[function(require,module,exports){
 /**
  * lodash 3.3.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -42598,7 +43318,7 @@ function property(path) {
 
 module.exports = baseCallback;
 
-},{"lodash._baseisequal":11,"lodash._bindcallback":16,"lodash.isarray":23,"lodash.pairs":17}],11:[function(require,module,exports){
+},{"lodash._baseisequal":21,"lodash._bindcallback":26,"lodash.isarray":33,"lodash.pairs":27}],21:[function(require,module,exports){
 /**
  * lodash 3.0.7 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -42942,7 +43662,7 @@ function isObject(value) {
 
 module.exports = baseIsEqual;
 
-},{"lodash.isarray":23,"lodash.istypedarray":12,"lodash.keys":13}],12:[function(require,module,exports){
+},{"lodash.isarray":33,"lodash.istypedarray":22,"lodash.keys":23}],22:[function(require,module,exports){
 /**
  * lodash 3.0.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43054,7 +43774,7 @@ function isTypedArray(value) {
 
 module.exports = isTypedArray;
 
-},{}],13:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 /**
  * lodash 3.1.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43292,7 +44012,7 @@ function keysIn(object) {
 
 module.exports = keys;
 
-},{"lodash._getnative":14,"lodash.isarguments":15,"lodash.isarray":23}],14:[function(require,module,exports){
+},{"lodash._getnative":24,"lodash.isarguments":25,"lodash.isarray":33}],24:[function(require,module,exports){
 /**
  * lodash 3.9.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43431,7 +44151,7 @@ function isNative(value) {
 
 module.exports = getNative;
 
-},{}],15:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 /**
  * lodash 3.0.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43539,7 +44259,7 @@ function isArguments(value) {
 
 module.exports = isArguments;
 
-},{}],16:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43606,7 +44326,7 @@ function identity(value) {
 
 module.exports = bindCallback;
 
-},{}],17:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43686,13 +44406,13 @@ function pairs(object) {
 
 module.exports = pairs;
 
-},{"lodash.keys":18}],18:[function(require,module,exports){
-arguments[4][13][0].apply(exports,arguments)
-},{"dup":13,"lodash._getnative":19,"lodash.isarguments":20,"lodash.isarray":23}],19:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],20:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"dup":15}],21:[function(require,module,exports){
+},{"lodash.keys":28}],28:[function(require,module,exports){
+arguments[4][23][0].apply(exports,arguments)
+},{"dup":23,"lodash._getnative":29,"lodash.isarguments":30,"lodash.isarray":33}],29:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"dup":24}],30:[function(require,module,exports){
+arguments[4][25][0].apply(exports,arguments)
+},{"dup":25}],31:[function(require,module,exports){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43759,7 +44479,7 @@ function identity(value) {
 
 module.exports = binaryIndex;
 
-},{"lodash._binaryindexby":22}],22:[function(require,module,exports){
+},{"lodash._binaryindexby":32}],32:[function(require,module,exports){
 /**
  * lodash 3.0.3 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -43827,7 +44547,7 @@ function binaryIndexBy(array, value, iteratee, retHighest) {
 
 module.exports = binaryIndexBy;
 
-},{}],23:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
  * lodash 3.0.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -44009,7 +44729,7 @@ function isNative(value) {
 
 module.exports = isArray;
 
-},{}],24:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 //
 //
 // UI Component that manages a (large) scrollable table by reusing row <div> nodes
@@ -44198,725 +44918,5 @@ ScrollableTable.prototype.updateData = function(newData) {
 //
 module.exports = ScrollableTable;
 
-},{"lodash.sortedindex":9}],25:[function(require,module,exports){
-//
-//
-//
-//
-//
-
-//
-var Ractive = require('ractive');
-var CanvasDPIScaler = require('canvas-dpi-scaler');
-var _ = require('lodash');
-var d3 = require('d3');
-
-//
-var ColHeader = Ractive.extend({
-  template: require('../templates/col-header.hbs'),
-  data: function() {
-    return {
-      label: 'Colname Undefined',
-      isDiscrete: true,
-      index: 0,
-      min: 0,
-      max: 1,
-      width: 160,
-      histogramHeight: 80,
-      scatterHeight: 160,
-      hoverValue: 0,
-      filter: {},
-      filtersOpen: false,
-      statsOpen: false,
-      histogramBarData: [],
-      scatterData: []
-    };
-  },
-  onrender: function() {
-    var self = this;
-
-    if(!this.get('isDiscrete')) {
-
-      // build svg axis
-      this.scale = d3.scale.linear();
-      this.yScale = d3.scale.linear();
-
-      //
-      this.axis = d3.svg.axis().orient('top').ticks(3);
-      this.rAxis = d3.svg.axis().orient('right').ticks(3);
-      this.lAxis = d3.svg.axis().orient('left').ticks(3);
-
-      //
-      this.axis.scale(this.scale);
-      this.rAxis.scale(this.yScale);
-      this.lAxis.scale(this.yScale);
-      this.axisSvg = d3.select(this.el).select('.dc-ch-axis');
-      this.axisSvg.select('.ch-axis-g.bottom').append('line')
-        .attr('class', 'axis-hover-line')
-        .attr('x1', 10).attr('y1', 0)
-        .attr('x2', 10).attr('y2', -24);
-
-      // update axis on data bounds, width changes
-      this.observe('min max width', function() {
-        if(this.get('isDiscrete')) { return; }
-
-        this.scale
-          .domain([this.get('min'), this.get('max')])
-          .range([0, this.get('width')]);
-        this.yScale
-          .domain([this.get('min'), this.get('max')])
-          .range([this.get('width'), 0]);
-        this.axisSvg.select('.ch-axis-g.bottom')
-          .call(this.axis);
-        this.axisSvg.select('.ch-axis-g.right')
-          .call(this.rAxis)
-        this.axisSvg.select('.ch-axis-g.left')
-          .call(this.lAxis);
-      });
-      var histogram = this.get('histogram'),
-          histogramMax = this.get('histogramMax'),
-          histogramHeight = this.get('histogramHeight');
-      this.set('histogramBarData', histogram.map(function(bin) {
-        return _.extend(bin, {
-          x0: self.scale(bin.lower),
-          x1: self.scale(bin.upper),
-          height: (bin.count / histogramMax) * histogramHeight
-        });
-      }));
-
-      // move hover slider
-      this.observe('hoverValue', function(newHoverValue) {
-        var pxValue = this.scale(newHoverValue);
-        this.axisSvg.select('.axis-hover-line')
-          .attr('x1', pxValue-1)
-          .attr('x2', pxValue-1);
-      });
-
-      // build scatter plot
-      this.canvas = this.el.querySelector('canvas'),
-      this.context = this.canvas.getContext('2d');
-      CanvasDPIScaler(this.canvas, this.context, this.get('width'), this.get('scatterHeight'));
-      this.observe('scatterData', function(points) {
-        var height = this.get('scatterHeight'),
-            width = this.get('width'),
-            radius = 2.5,
-            canvas = this.canvas, //= this.el.querySelector('canvas'),
-            context = this.context; //= this.canvas.getContext('2d');
-
-        // TODO: clean up this rendering, generalize...
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.globalAlpha = 0.23;
-        context.fillStyle = '#1166B7';
-        points.forEach(function(point, ndx) {
-          context.beginPath();
-          context.arc(point[1] * (width / 100),
-                      (100 - point[0]) * (height / 100),
-                      radius,
-                      0,
-                      2 * Math.PI,
-                      false);
-          context.fillStyle = point[2] ? 'red' : '#1166B7';
-          if(point[3]) { context.fillStyle = 'purple'; }
-          context.globalAlpha = point[3] ? 1 : point[2] ? 0.28 : 0.13;
-          context.fill();
-        });
-
-      }, { init: false });
-    }
-  }
-});
-
-//
-module.exports = ColHeader;
-
-},{"../templates/col-header.hbs":32,"canvas-dpi-scaler":1,"d3":2,"lodash":4,"ractive":8}],26:[function(require,module,exports){
-//
-//
-// Filter array of parsed datacomb rows with filter array of objects
-//  see tests for data, filter formats
-
-//
-var _ = require('lodash');
-
-//
-module.exports = function(rows, filters) {
-  return rows.filter(function(row) {
-    return _.all(filters, function(filter, colNdx) {
-      return filter.toggled ?
-        (filter.toggled[row._values[colNdx]]) :
-        (row._values[colNdx] >= filter.gt && row._values[colNdx] <= filter.lt);
-    });
-  });
-};
-
-},{"lodash":4}],27:[function(require,module,exports){
-//
-//
-// Pass row data through column definitions to build usable columns and rows
-
-//
-var _ = require('lodash'),
-    jStat = require('jStat').jStat,
-    d3 = require('d3');
-
-// settings
-var histogramBins = 20;
-
-//
-module.exports = function(rows, columns, labelAccessor) {
-  labelAccessor = labelAccessor || function(d, ndx) { return ''+ndx; };
-  if(_.isString(labelAccessor)) { labelAccessor = _.property(labelAccessor); }
-
-  //
-  var values, value, mean, median, sd;
-  var parsedColumns = columns.map(function(column, ndx) {
-
-    // Collect values from each row
-    values = _.map(rows, column.accessor);
-
-    // Discrete column, eg: team name, position, letter grade
-    if(column.type === 'discrete') {
-      return _.extend(column, {
-        ndx: ndx,
-        uniqValues: _.uniq(values).sort()
-      });
-
-
-    // Continuous column, numeric value, eg: points, age, etc...
-    } else {
-      column.min = _.min(values);
-      column.max = _.max(values);
-
-      return _.extend(column, {
-        ndx: ndx,
-        mean: d3.mean(values),
-        median: d3.median(values),
-        sd: d3.deviation(values),
-        histogram: jStat.histogram(values, histogramBins).map(function(count, binNdx) {
-          return {
-            count: count,
-            colNdx: ndx,
-            lower: column.min + ((binNdx / histogramBins) * (column.max - column.min)),
-            upper: column.min + (((binNdx+1) / histogramBins) * (column.max - column.min))
-          }
-        }),
-        widthFn: function(x) { return ((x - column.min) / (column.max - column.min)) * 100; }
-      });
-    }
-  });
-
-  // need to find largest common histogram bin count for common y axis
-  var histogramMax = _.max(
-    _(parsedColumns)
-      .map('histogram')
-      .compact()
-      .flatten()
-      .map('count')
-      .value() );
-
-  //
-  var value, widths, values, labels;
-  var parsedRows = rows.map(function(row, ndx) {
-    widths = []; values = []; labels = []; discreteNdx = []; sortValues = [];
-
-    parsedColumns.forEach(function(col, colNdx) {
-      value = _.isString(col.accessor) ? row[col.accessor] : col.accessor(row, ndx);
-
-      values[colNdx] = value;
-      widths[colNdx] = (col.type === 'discrete') ? 0 : col.widthFn(value);
-      labels[colNdx] = col.format ? col.format(value) : value;
-      if(col.type === 'discrete') {
-        discreteNdx[colNdx] = col.uniqValues.indexOf(value);
-        if(col.sortOrder) { sortValues[colNdx] = col.sortOrder.indexOf(value); }
-      }
-    });
-    return _.extend(row, {
-      ndx: ndx,
-      _values: values,
-      _sortValues: sortValues,
-      _widths: widths,
-      _labels: labels,
-      _discreteNdx: discreteNdx,
-      _rowLabel: labelAccessor(row, ndx),
-      _colorNdx: ''
-    });
-  });
-
-  return {
-    columns: parsedColumns,
-    histogramMax: histogramMax,
-    rows: parsedRows
-  };
-};
-
-},{"d3":2,"jStat":3,"lodash":4}],28:[function(require,module,exports){
-//
-//
-// Datacomb interface class
-
-//
-"use strict";
-
-// NPM deps
-var ScrollableTable = require('smart-table-scroll');
-var Ractive = require('ractive');
-var _ = require('lodash');
-
-// local deps
-var dataParser = require('./data-parser');
-var dataFilter = require('./data-filter');
-var Manager = require('./manager');
-var palette = require('./palette').light12;
-
-//
-var defaults = { };
-
-//
-var Datacomb = function(opts) {
-  if(!opts.el) { throw new Error("Need to pass `el` into Datacomb."); }
-  if(!opts.data) { throw new Error("Need to pass `data` into Datacomb."); }
-  if(!opts.columns) { throw new Error("Need to pass `columns` into Datacomb."); }
-
-  // inherit from options, defaults
-  for(var key in defaults) { this[key] = defaults[key]; }
-  for(var key in opts) { this[key] = opts[key]; }
-
-  //
-  this.width = this.width ||
-    this.el.getBoundingClientRect().width - (20 + (this.columns.length+1) * 12);
-  this.colWidth = this.width / (this.columns.length + 1);
-  this.groupByColNdx = -1;
-  this.parsed = dataParser(this.data, this.columns, this.labelAccessor);
-  this.allRows = this.parsed.rows;
-  this.pipelinedRows = this.allRows;
-
-  //
-  this.initManager();
-  this.initTable();
-};
-
-//
-Datacomb.prototype.initManager = function() {
-  var self = this;
-
-  // init Ractive element to build dom, handle settings and interaction
-  this.manager = new Manager({
-    el: this.el,
-    data: {
-      cols: this.parsed.columns,
-      histogramMax: this.parsed.histogramMax,
-      scatterArrays: [],
-      colWidth: this.colWidth
-    }
-  });
-
-  // this.manager.observe('sortColNdx sortDesc', this.applySort.bind(this), { init: false });
-  this.manager.observe('filters', this.applyFilters.bind(this), { init: false });
-  this.manager.on('*.sort-by-col', function(evt, colNdx, descOrder) {
-    self.applySort(colNdx, descOrder);
-  });
-  this.manager.on('*.show-scatter-plots', function(evt, scatterNdx) {
-    var scatterCol = self.parsed.columns[scatterNdx];
-    self.scatterNdx = scatterNdx;
-    this.set('scatterPlotNdx', scatterNdx);
-    this.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
-      return col.type === 'discrete' ? null :
-        self.allRows.map(function(row) {
-          return [ scatterCol.widthFn(row._values[scatterNdx]),
-                   col.widthFn(row._values[ndx]),
-                   (row.focused && !row.filtered), // highlight
-                   (row.hovered) // hover
-                 ];
-        });
-    }));
-  });
-
-  // click histogram bar
-  this.manager.on('*.focus-histogram', function(evt, colNdx, lower, upper) {
-    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
-      if(self.allRows[ndx]._values[colNdx] <= upper &&
-         self.allRows[ndx]._values[colNdx] >= lower) {
-        self.allRows[ndx].focused = true;
-      }
-    }
-    self.allRows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.getRows({ force: true }));
-  });
-
-  // hover histogram bar
-  this.manager.on('*.hover-histogram', function(evt, colNdx, lower, upper) {
-    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
-      self.allRows[ndx].histogramHover =
-         (self.allRows[ndx]._values[colNdx] <= upper &&
-          self.allRows[ndx]._values[colNdx] >= lower);
-    }
-    self.table.updateData(self.getRows({ force: true }));
-  });
-  this.manager.observe('histogramsOpen', function() {
-    for(var ndx = 0; ndx < self.allRows.length; ndx++) {
-      self.allRows[ndx].histogramHover = false;
-    }
-    self.table.updateData(self.getRows({ force: true }));
-  }, { init: false });
-
-  this.manager.observe('focusOnHover', function(shouldFocus) {
-    if(!shouldFocus) {
-      self.allRows[self.currentHoverNdx].hovered = false;
-      self.table.updateData(self.getRows());
-    }
-  }, { init: false });
-  this.manager.observe('groupByColNdx', function(colNdx) {
-    self.table.updateData(self.getRows({ groupByColNdx: colNdx }));
-  }, { init: false });
-  this.manager.observe('colorByColNdx', function(colNdx) {
-    self.table.updateData(self.getRows({ colorByColNdx: colNdx }));
-  }, { init: false });
-  this.manager.observe('hideUnfocused', function(shouldHide) {
-    self.table.updateData(self.getRows({ hideUnfocused: shouldHide }));
-  }, { init: false });
-  this.manager.on('focus-all', function(evt) {
-    self.allRows.forEach(function(r) { r.focused = true; });
-    self.table.updateData(self.getRows());
-  });
-  this.manager.on('unfocus-all', function(evt) {
-    self.allRows.forEach(function(r) {
-      r.focused = false;
-      r.hovered = false;
-      r.histogramHover = false;
-    });
-    self.table.updateData(self.getRows());
-  });
-
-};
-
-//
-//
-
-//
-Datacomb.prototype.initTable = function() {
-  var self = this;
-
-  this.table = new ScrollableTable({
-    el: this.el.querySelector('.dc-table'),
-    data: this.allRows,
-    availableNodes: 1000,
-    heightFn: function(d) { return (d.hovered || d.focused || d.histogramHover) ? 17 : 4; },
-    buildRow: function(d) {
-      var node = document.createElement('div');
-      var nodeContent = "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='label'><div class='dc-label'>"+d._rowLabel+"</div></div>";
-
-      node.classList.add('dc-row');
-      node._dcndx = d.ndx;
-      var discreteColor;
-      self.parsed.columns.forEach(function(column, colNdx) {
-        if(column.type === 'discrete') {
-          discreteColor = palette[d._discreteNdx[colNdx] % palette.length];
-          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='disc'><div class='dc-bar' style='background-color:"+discreteColor+";'></div><div class='dc-disc-val'>"+d._values[colNdx]+"</div></div>";
-        } else {
-          nodeContent += "<div class='dc-cell' style='width:"+self.colWidth+"px;' coltype='cont'><div class='dc-bar' style='width:"+d._widths[colNdx]+"%'></div><div class='dc-cont-val'>"+d._labels[colNdx]+"</div></div>";
-        }
-      });
-      node.innerHTML = nodeContent;
-      return node;
-    },
-    updateRow: function(d, el) {
-      el._dcndx = d.ndx;
-      el.childNodes[0].childNodes[0].textContent = d._rowLabel;
-      (d.hovered || d.histogramHover) ? el.setAttribute('dc-hover', '') : el.removeAttribute('dc-hover');
-      (d.hovered || d.focused || d.histogramHover) ?
-        el.setAttribute('dc-expand', '') :
-        el.removeAttribute('dc-expand');
-
-      for(var colNdx = 0; colNdx < self.parsed.columns.length; colNdx++) {
-        if(self.parsed.columns[colNdx].type === 'discrete') {
-          el.childNodes[colNdx + 1].childNodes[0].style.backgroundColor = palette[d._discreteNdx[colNdx] % palette.length];
-          el.childNodes[colNdx + 1].childNodes[1].textContent = d._values[colNdx];
-
-        } else {
-          el.childNodes[colNdx+1].childNodes[0].style.width = ''+d._widths[colNdx]+'%';
-          el.childNodes[colNdx+1].childNodes[0].style.backgroundColor =
-            (d._colorNdx || d._colorNdx === 0) ? palette[d._colorNdx % palette.length] : null;
-          el.childNodes[colNdx + 1].childNodes[1].textContent = d._labels[colNdx];
-
-        }
-      }
-    }
-  });
-
-  this.currentHoverNdx = 0;
-  this.isDragging = false;
-
-  // Hover interaction: highlight row
-  this.table.el.addEventListener('mouseover', function(evt) {
-    if(!self.manager.get('focusOnHover')) { return; }
-    var node = evt.target;
-    while(node._dcndx === undefined) {
-      if(node.parentNode) { node = node.parentNode; }
-      else { return; }
-    }
-    self.allRows[self.currentHoverNdx].hovered = false;
-    self.allRows[node._dcndx].hovered = true;
-    self.currentHoverNdx = node._dcndx;
-    self.manager.set('hoverRow', self.allRows[node._dcndx]);
-    self.table.updateData(self.getRows());
-
-    // Drag actions
-    if(evt.buttons) {
-      self.allRows[node._dcndx].focused = !self.allRows[node._dcndx].focused;
-    }
-  });
-
-  // Drag interaction: focus multiple rows
-  this.table.el.addEventListener('mousedown', function(evt) {
-    var node = evt.srcElement;
-    while(node._dcndx === undefined) {
-      if(node.parentNode) { node = node.parentNode; }
-      else { return; }
-    }
-    self.dragStartNdx = node._dcndx;
-  });
-  this.table.el.addEventListener('mouseup', function(evt) {
-    var node = evt.srcElement;
-    while(node._dcndx === undefined) {
-      if(node.parentNode) { node = node.parentNode; }
-      else { return; }
-    }
-    self.focusRows(self.dragStartNdx, node._dcndx);
-  });
-
-  //
-  this.focusRows = function(ndxA, ndxB) {
-    var minNdx = Math.min(ndxA, ndxB),
-        maxNdx = Math.max(ndxA, ndxB),
-        forceUpdate = false;
-
-    // Single row selection - toggle
-    if(minNdx === maxNdx) {
-      self.allRows[minNdx].focused = !self.allRows[minNdx].focused;
-      forceUpdate = !self.allRows[minNdx].focused && this.hideUnfocused;
-
-    // Multiple row selection - more complicated logic???
-    //   all selected -> unselect
-    //   some selected -> select
-    //   none selected -> select
-    } else {
-      for(var ndx = minNdx; ndx < maxNdx; ndx++) {
-        if(!self.allRows[ndx].filtered) {
-          self.allRows[ndx].focused = true; // !self.parsed.rows[ndx].focused;
-        }
-      }
-    }
-    self.allRows[self.currentHoverNdx].hovered = false;
-    self.table.updateData(self.getRows(forceUpdate ? { force: true } : null));
-  };
-};
-
-// Run data through pipeline if neccesary: sort -> filter -> group -> ...
-Datacomb.prototype.getRows = function(opts) {
-  var self = this;
-
-  // Something changed, run data through pipeline...
-  if(opts) {
-
-    // sort...
-    if(opts.sort) {
-      this.allRows = _.sortBy(this.allRows,
-        opts.sort.colNdx === -1 ? '_rowLabel' :
-          this.parsed.columns[opts.sort.colNdx].sortOrder ?
-          '_sortValues.'+opts.sort.colNdx :
-          '_values.'+opts.sort.colNdx);
-      opts.sort.desc && this.allRows.reverse();
-    }
-
-    // groupBy...
-    if(opts.groupByColNdx !== undefined) { this.groupByColNdx = opts.groupByColNdx; }
-    if(this.groupByColNdx !== -1) {
-      this.allRows = opts.sort ?
-        _.sortByOrder(this.allRows,
-          ['_values.'+this.groupByColNdx, '_values.'+opts.sort.colNdx],
-          [true, !opts.sort.desc]) :
-        _.sortByOrder(this.allRows, ['_values.'+this.groupByColNdx], [true]);
-    }
-
-    // colorBy...
-    if(opts.colorByColNdx !== undefined) { this.colorByColNdx = opts.colorByColNdx; }
-
-    this.allRows.forEach(function(d, ndx) {
-      d.ndx = ndx;
-      d._colorNdx = self.colorByColNdx !== -1 ? d._discreteNdx[self.colorByColNdx] : null;
-      d.hovered = false;
-      d.filtered = true; });
-
-    // filter...
-    this.filters = opts.filters || this.filters;
-    this.pipelinedRows = this.filters ? dataFilter(this.allRows, this.filters) : this.allRows;
-
-    // `hide unfocused`
-    if(opts.hideUnfocused !== undefined) { this.hideUnfocused = opts.hideUnfocused; }
-    if(this.hideUnfocused) {
-      this.pipelinedRows = this.pipelinedRows.filter(function(d) { return d.focused; });
-    }
-  }
-  this.pipelinedRows.forEach(function(d) { d.filtered = false; });
-
-  // update scatter plots...
-  if(this.scatterNdx >= 0) {
-    var scatterCol = self.parsed.columns[self.scatterNdx];
-    this.manager.set('scatterArrays', self.parsed.columns.map(function(col, ndx) {
-      return col.type === 'discrete' ? null :
-        self.allRows.map(function(row) {
-          return [ scatterCol.widthFn(row._values[self.scatterNdx]),
-                   col.widthFn(row._values[ndx]),
-                   (row.focused && !row.filtered), // highlight
-                   (row.hovered) // hover
-                 ];
-        });
-    }));
-  }
-
-  return this.pipelinedRows;
-};
-
-//
-Datacomb.prototype.applySort = function(colNdx, desc) {
-  this.table.updateData(this.getRows({
-    sort: { colNdx: colNdx, desc: desc }
-  }));
-};
-
-//
-Datacomb.prototype.applyFilters = function(filters) {
-  this.table.updateData(this.getRows({
-    filters: filters
-  }));
-};
-
-//
-module.exports = Datacomb;
-
-},{"./data-filter":26,"./data-parser":27,"./manager":29,"./palette":30,"lodash":4,"ractive":8,"smart-table-scroll":24}],29:[function(require,module,exports){
-//
-//
-//
-//
-//
-
-//
-var Ractive = require('ractive');
-var _ = require('lodash');
-var d3 = require('d3');
-
-//
-var ColHeader = require('./col-header');
-var RangeSlider = require('ractive-range-slider');
-
-//
-var Manager = Ractive.extend({
-  template: require('../templates/datacomb.hbs'),
-  partials: {
-    colFilter: require('../templates/col-filter.hbs'),
-    summaryStats: require('../templates/summary-stats.hbs')
-  },
-  components: {
-    ColHeader: ColHeader,
-    RangeSlider: RangeSlider
-  },
-
-  //
-  data: function() {
-    return {
-      sortColNdx: null,
-      sortDesc: false,
-      focusOnHover: true,
-      hideUnfocused: false,
-      filtersOpen: false,
-      statsOpen: false,
-      histogramsOpen: false,
-      hoverValues: [],
-      cols: [],
-      filters: [],
-      groupByColNdx: -1,
-      colorByColNdx: -1,
-      scatterPlotNdx: -1
-    };
-  },
-
-  //
-  computed: {
-    discreteCols: function() {
-      return _.where(this.get('cols'), { type: 'discrete' });
-    }
-  },
-
-  //
-  onrender: function() {
-
-    // reset filters back to initial state
-    this.resetFilters = function(cols) {
-      this.set('filters',
-        cols.map(function(col) {
-          if(col.type === 'discrete') {
-            var toggled = {}; // build new obj with T/F values
-            col.uniqValues.forEach(function(v) { toggled[v] = true; });
-            return { toggled: toggled };
-          } else {
-            return { gt: col.min, lt: col.max };
-          }
-        })
-      );
-    };
-    this.observe('cols', this.resetFilters);
-    this.on('*.reset-filters', function() {
-      this.resetFilters(this.get('cols'));
-    });
-  }
-});
-
-module.exports = Manager;
-
-},{"../templates/col-filter.hbs":31,"../templates/datacomb.hbs":33,"../templates/summary-stats.hbs":34,"./col-header":25,"d3":2,"lodash":4,"ractive":8,"ractive-range-slider":7}],30:[function(require,module,exports){
-//
-//
-//
-
-module.exports = {
-
-  // generated from http://tools.medialab.sciences-po.fr/iwanthue/
-  // settings: soft (k-means) + defaults
-  light12: ["#CD5AD0",
-            "#80CE51",
-            "#4B3444",
-            "#97A4C0",
-            "#506032",
-            "#CEAE40",
-            "#BF4932",
-            "#6CCDB1",
-            "#BB4C82",
-            "#726ABE",
-            "#BC7E6D",
-            "#C1C896"],
-
-  light8: ["#A95CC5",
-           "#C36534",
-           "#7A87B5",
-           "#9AC347",
-           "#4C4335",
-           "#76C49B",
-           "#B34A72",
-           "#CAB098"]
-};
-
-},{}],31:[function(require,module,exports){
-module.exports = "\n{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      <input type='checkbox' checked={{filters[colNdx].toggled[.]}} /> {{ . }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <div class='filter-text'>\n    <input type='text' value={{ filters[colNdx].gt }} />\n    to\n    <input type='text' value={{ filters[colNdx].lt }} />\n  </div>\n  <RangeSlider\n    width=160\n    lowerBound={{cols[colNdx].min}}\n    upperBound={{cols[colNdx].max}}\n    lower={{filters[colNdx].gt}}\n    upper={{filters[colNdx].lt}}\n    step={{ (cols[colNdx].max / cols[colNdx].min) / 100}} />\n{{/if}}\n";
-
-},{}],32:[function(require,module,exports){
-module.exports = "<div class='dc-col-header' style='width:{{width}}px;' {{#if isDiscrete}}discrete{{/if}}>\n  <h4>\n    {{label}}\n    <button class='col-action' on-click='sort-by-col:{{index}},false'>\n      {{#if isDiscrete || index === -1}}\n        <i class='fa fa-sort-alpha-asc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-asc'></i>\n      {{/if}}\n    </button>\n    <button class='col-action' on-click='sort-by-col:{{index}},true'>\n      {{#if isDiscrete }}\n        <i class='fa fa-sort-alpha-desc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-desc'></i>\n      {{/if}}\n    </button>\n    {{#if !isDiscrete }}\n      {{#if scatterPlotNdx === index}}\n        <button class='col-action' on-click='set(\"scatterPlotNdx\",-1)'>\n          <i class='fa fa-times-circle-o'></i>\n        </button>\n      {{else}}\n        <button class='col-action' on-click='show-scatter-plots:{{index}}'>\n          <i class='fa fa-circle-o'></i>\n        </button>\n      {{/if}}\n    {{/if}}\n  </h4>\n\n\n  <!-- filters -->\n  <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>\n    {{#if index === -1}}\n      <button class='dc-btn dc-warn' on-click='reset-filters'>\n        <i class='fa fa-close'></i>\n        Reset filters\n      </button>\n\n    {{elseif isDiscrete }}\n      <button on-click='set(\"filter.toggled.*\", true)' class='col-action'>All</button> / <button on-click='set(\"filter.toggled.*\", false)' class='col-action'>None</button>\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          <input type='checkbox' checked={{filter.toggled[.]}} /> {{ . }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n\n    {{else}}\n      <div class='filter-text'>\n        <input type='text' value={{ filter.gt }} />\n        to\n        <input type='text' value={{ filter.lt }} />\n      </div>\n      <RangeSlider\n        width={{ width}}\n        lowerBound={{min}}\n        upperBound={{max}}\n        lower={{filter.gt}}\n        upper={{filter.lt}}\n        step={{ (max / min) / 100}} />\n    {{/if}}\n  </div>\n\n  <!-- summary stats -->\n  <div {{#if !statsOpen }}hidden{{/if}}>\n    {{#if isDiscrete }}\n      {{#if false }}\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          {{ label }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n      {{/if}}\n    {{else}}\n      <ul class='stat-list'>\n        <li>Min: <b>{{ min.toFixed(2) }}</b></li>\n        <li>Max: <b>{{ max.toFixed(2) }}</b></li>\n        <li>Mean: <b>{{ mean.toFixed(2) }}</b></li>\n        <li>Med: <b>{{ median.toFixed(2) }}</b></li>\n        <li>Std Dev: <b>{{ sd.toFixed(2) }}</b></li>\n      </ul>\n    {{/if}}\n  </div>\n\n\n\n  <!-- svg, canvas elements -->\n  {{#if isDiscrete}}\n    <div class='disc-value'>{{hoverValue}}</div>\n  {{else}}\n  <canvas class='dc-col-scatter' width={{width}} height={{scatterHeight}} {{#if !scatterOpen}}hidden{{/if}}></canvas>\n    <svg class='dc-ch-axis dc-histogram' height='{{histogramsOpen ? 78 : 22}}' width='{{width}}'>\n        <!-- histograms -->\n        {{#if !isDiscrete }}\n        <g {{#if !histogramsOpen }}hidden{{/if}}>\n          {{#histogramBarData}}\n            <rect x={{x0}}\n                  y={{histogramHeight-height}}\n                  width={{x1-x0}}\n                  height={{height}}\n                  on-mouseover='hover-histogram:{{index}},{{lower}},{{upper}}'\n                  on-click='focus-histogram:{{index}},{{lower}},{{upper}}' />\n          {{/histogramBarData}}\n        </g>\n        {{/if}}\n\n        <!-- axis -->\n        <g class='ch-axis-g bottom' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>\n        <g {{#if index !== scatterPlotNdx }}hidden{{/if}}>\n          <g class='ch-axis-g right' transform='translate(0,{{24-scatterHeight}})'></g>\n          <g class='ch-axis-g left' transform='translate({{width}},{{24-scatterHeight}})'></g>\n        </g>\n\n    </svg>\n  {{/if}}\n\n</div>\n";
-
-},{}],33:[function(require,module,exports){
-module.exports = "<!--\nTop level template and DOM structure for Datacomb.\n-->\n\n<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css\">\n\n{{#partial discreteColumnOptions}}\n  <option value='-1'>None</option>\n  {{#discreteCols}}\n    <option value={{ndx}}>{{label}}</option>\n  {{/discreteCols}}\n{{/partial}}\n\n<div class='dc-container'>\n  <div class='dc-top-controls'>\n    <label>\n      <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover\n    </label>\n    <label>\n      <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused\n    </label>\n    <button class='dc-btn'\n            on-click='toggle(\"filtersOpen\")'\n            {{#if filtersOpen}}opened{{/if}} >\n      <i class='fa fa-filter'></i>\n      {{#if filtersOpen}}Hide{{else}}Show{{/if}} Filters\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"statsOpen\")'\n            {{#if statsOpen}}opened{{/if}} >\n      <i class='fa fa-list'></i>\n      {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"histogramsOpen\")'\n            {{#if histogramsOpen}}opened{{/if}} >\n      <i class='fa fa-bar-chart'></i>\n      {{#if histogramsOpen}}Hide{{else}}Show{{/if}} Histograms\n    </button>\n    <button class='dc-btn' on-click='focus-all'>\n      <i class='fa fa-arrows-v'></i>\n      Focus All\n    </button>\n    <button class='dc-btn' on-click='unfocus-all'>\n      <i class='fa fa-minus'></i>\n      Unfocus All\n    </button>\n\n    <label>Group By: </label>\n    <select value={{groupByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n\n    <label>Color By: </label>\n    <select value={{colorByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n  </div>\n\n  <ul class='dc-col-headers'>\n    <li>\n      <ColHeader label=\"Row Label\"\n        width={{ colWidth}}\n        index={{-1}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        hoverValue={{ hoverRow._rowLabel }} /></li>\n    {{#cols:colNdx}}\n      <li><ColHeader\n        width={{ colWidth}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        statsOpen={{statsOpen}}\n        scatterOpen={{scatterPlotNdx !== -1}}\n\n        scatterPlotNdx={{scatterPlotNdx}}\n        scatterHeight={{ colWidth }}\n        scatterData={{ scatterArrays[colNdx] }}\n\n        isDiscrete={{ type=='discrete' }}\n        min={{ cols[colNdx].min }}\n        max={{ cols[colNdx].max }}\n        label={{ label }}\n        index={{ colNdx }}\n        filter={{ filters[colNdx] }}\n        hoverValue={{ hoverRow._values[colNdx] }} /></li>\n    {{/cols}}\n  </ul>\n\n  <div class='dc-table'></div>\n</div>\n";
-
-},{}],34:[function(require,module,exports){
-module.exports = "{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      {{ label }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <ul class='stat-list'>\n    <li>Min: {{ min.toFixed(2) }}</li>\n    <li>Max: {{ max.toFixed(2) }}</li>\n    <li>Mean: {{ mean.toFixed(2) }}</li>\n    <li>Med: {{ median.toFixed(2) }}</li>\n    <li>Std Dev: {{ sd.toFixed(2) }}</li>\n  </ul>\n{{/if}}\n";
-
-},{}]},{},[28])(28)
+},{"lodash.sortedindex":19}]},{},[12])(12)
 });
