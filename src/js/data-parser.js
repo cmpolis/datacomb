@@ -61,11 +61,10 @@ module.exports = function(rows, columns, labelAccessor) {
       .map('count')
       .value() );
 
-  // scale the histogramMax so that the histogram doesn't overlap
-  // the scatterplot
+  // scale the histogramMax so that the histogram bar does not overlap
+  // the scatterplot when both are shown
   var histogramScaleFactor = 1.5;
   histogramMax = histogramScaleFactor * histogramMax;
-  console.log('calculated histogramMax', histogramMax);
 
   //
   var value, widths, values, labels;
