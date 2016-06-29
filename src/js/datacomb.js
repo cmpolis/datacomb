@@ -38,6 +38,9 @@ var Datacomb = function(opts) {
   this.allRows = this.parsed.rows;
   this.pipelinedRows = this.allRows;
 
+  console.log('this.colWidth', this.colWidth);
+  console.log('this.parsed', this.parsed);
+
   //
   this.initManager();
   this.initTable();
