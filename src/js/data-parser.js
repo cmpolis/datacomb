@@ -9,7 +9,6 @@ var _ = require('lodash'),
 
 // settings
 var histogramBins = 20;
-
 //
 module.exports = function(rows, columns, labelAccessor) {
   labelAccessor = labelAccessor || function(d, ndx) { return ''+ndx; };
@@ -61,6 +60,11 @@ module.exports = function(rows, columns, labelAccessor) {
       .flatten()
       .map('count')
       .value() );
+
+  // scale the histogramMax so that the histogram bar does not overlap
+  // the scatterplot when both are shown
+  var histogramScaleFactor = 1.5;
+  histogramMax = histogramScaleFactor * histogramMax;
 
   //
   var value, widths, values, labels;

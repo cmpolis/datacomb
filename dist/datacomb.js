@@ -39,7 +39,7 @@ module.exports = scaleFn;
 },{}],2:[function(require,module,exports){
 !function() {
   var d3 = {
-    version: "3.5.6"
+    version: "3.5.17"
   };
   var d3_arraySlice = [].slice, d3_array = function(list) {
     return d3_arraySlice.call(list);
@@ -259,20 +259,20 @@ module.exports = scaleFn;
     while (i < n) pairs[i] = [ p0 = p1, p1 = array[++i] ];
     return pairs;
   };
-  d3.zip = function() {
-    if (!(n = arguments.length)) return [];
-    for (var i = -1, m = d3.min(arguments, d3_zipLength), zips = new Array(m); ++i < m; ) {
-      for (var j = -1, n, zip = zips[i] = new Array(n); ++j < n; ) {
-        zip[j] = arguments[j][i];
+  d3.transpose = function(matrix) {
+    if (!(n = matrix.length)) return [];
+    for (var i = -1, m = d3.min(matrix, d3_transposeLength), transpose = new Array(m); ++i < m; ) {
+      for (var j = -1, n, row = transpose[i] = new Array(n); ++j < n; ) {
+        row[j] = matrix[j][i];
       }
     }
-    return zips;
+    return transpose;
   };
-  function d3_zipLength(d) {
+  function d3_transposeLength(d) {
     return d.length;
   }
-  d3.transpose = function(matrix) {
-    return d3.zip.apply(d3, matrix);
+  d3.zip = function() {
+    return d3.transpose(arguments);
   };
   d3.keys = function(map) {
     var keys = [];
@@ -659,9 +659,10 @@ module.exports = scaleFn;
       return d3_selectAll(selector, this);
     };
   }
+  var d3_nsXhtml = "http://www.w3.org/1999/xhtml";
   var d3_nsPrefix = {
     svg: "http://www.w3.org/2000/svg",
-    xhtml: "http://www.w3.org/1999/xhtml",
+    xhtml: d3_nsXhtml,
     xlink: "http://www.w3.org/1999/xlink",
     xml: "http://www.w3.org/XML/1998/namespace",
     xmlns: "http://www.w3.org/2000/xmlns/"
@@ -670,10 +671,7 @@ module.exports = scaleFn;
     prefix: d3_nsPrefix,
     qualify: function(name) {
       var i = name.indexOf(":"), prefix = name;
-      if (i >= 0) {
-        prefix = name.slice(0, i);
-        name = name.slice(i + 1);
-      }
+      if (i >= 0 && (prefix = name.slice(0, i)) !== "xmlns") name = name.slice(i + 1);
       return d3_nsPrefix.hasOwnProperty(prefix) ? {
         space: d3_nsPrefix[prefix],
         local: name
@@ -847,7 +845,7 @@ module.exports = scaleFn;
   function d3_selection_creator(name) {
     function create() {
       var document = this.ownerDocument, namespace = this.namespaceURI;
-      return namespace ? document.createElementNS(namespace, name) : document.createElement(name);
+      return namespace === d3_nsXhtml && document.documentElement.namespaceURI === d3_nsXhtml ? document.createElement(name) : document.createElementNS(namespace, name);
     }
     function createNS() {
       return this.ownerDocument.createElementNS(name.space, name.local);
@@ -884,12 +882,14 @@ module.exports = scaleFn;
       if (key) {
         var nodeByKeyValue = new d3_Map(), keyValues = new Array(n), keyValue;
         for (i = -1; ++i < n; ) {
-          if (nodeByKeyValue.has(keyValue = key.call(node = group[i], node.__data__, i))) {
-            exitNodes[i] = node;
-          } else {
-            nodeByKeyValue.set(keyValue, node);
+          if (node = group[i]) {
+            if (nodeByKeyValue.has(keyValue = key.call(node, node.__data__, i))) {
+              exitNodes[i] = node;
+            } else {
+              nodeByKeyValue.set(keyValue, node);
+            }
+            keyValues[i] = keyValue;
           }
-          keyValues[i] = keyValue;
         }
         for (i = -1; ++i < m; ) {
           if (!(node = nodeByKeyValue.get(keyValue = key.call(groupData, nodeData = groupData[i], i)))) {
@@ -901,7 +901,7 @@ module.exports = scaleFn;
           nodeByKeyValue.set(keyValue, true);
         }
         for (i = -1; ++i < n; ) {
-          if (nodeByKeyValue.get(keyValues[i]) !== true) {
+          if (i in keyValues && nodeByKeyValue.get(keyValues[i]) !== true) {
             exitNodes[i] = group[i];
           }
         }
@@ -1093,7 +1093,7 @@ module.exports = scaleFn;
       group = d3_array(d3_selectAll(nodes, d3_document));
       group.parentNode = d3_document.documentElement;
     } else {
-      group = nodes;
+      group = d3_array(nodes);
       group.parentNode = null;
     }
     return d3_selection([ group ]);
@@ -1244,7 +1244,7 @@ module.exports = scaleFn;
     }
     function dragstart(id, position, subject, move, end) {
       return function() {
-        var that = this, target = d3.event.target, parent = that.parentNode, dispatch = event.of(that, arguments), dragged = 0, dragId = id(), dragName = ".drag" + (dragId == null ? "" : "-" + dragId), dragOffset, dragSubject = d3.select(subject(target)).on(move + dragName, moved).on(end + dragName, ended), dragRestore = d3_event_dragSuppress(target), position0 = position(parent, dragId);
+        var that = this, target = d3.event.target.correspondingElement || d3.event.target, parent = that.parentNode, dispatch = event.of(that, arguments), dragged = 0, dragId = id(), dragName = ".drag" + (dragId == null ? "" : "-" + dragId), dragOffset, dragSubject = d3.select(subject(target)).on(move + dragName, moved).on(end + dragName, ended), dragRestore = d3_event_dragSuppress(target), position0 = position(parent, dragId);
         if (origin) {
           dragOffset = origin.apply(that, arguments);
           dragOffset = [ dragOffset.x - position0[0], dragOffset.y - position0[1] ];
@@ -1272,7 +1272,7 @@ module.exports = scaleFn;
         function ended() {
           if (!position(parent, dragId)) return;
           dragSubject.on(move + dragName, null).on(end + dragName, null);
-          dragRestore(dragged && d3.event.target === target);
+          dragRestore(dragged);
           dispatch({
             type: "dragend"
           });
@@ -1324,18 +1324,22 @@ module.exports = scaleFn;
   }
   var ρ = Math.SQRT2, ρ2 = 2, ρ4 = 4;
   d3.interpolateZoom = function(p0, p1) {
-    var ux0 = p0[0], uy0 = p0[1], w0 = p0[2], ux1 = p1[0], uy1 = p1[1], w1 = p1[2];
-    var dx = ux1 - ux0, dy = uy1 - uy0, d2 = dx * dx + dy * dy, d1 = Math.sqrt(d2), b0 = (w1 * w1 - w0 * w0 + ρ4 * d2) / (2 * w0 * ρ2 * d1), b1 = (w1 * w1 - w0 * w0 - ρ4 * d2) / (2 * w1 * ρ2 * d1), r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0), r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1), dr = r1 - r0, S = (dr || Math.log(w1 / w0)) / ρ;
-    function interpolate(t) {
-      var s = t * S;
-      if (dr) {
-        var coshr0 = d3_cosh(r0), u = w0 / (ρ2 * d1) * (coshr0 * d3_tanh(ρ * s + r0) - d3_sinh(r0));
+    var ux0 = p0[0], uy0 = p0[1], w0 = p0[2], ux1 = p1[0], uy1 = p1[1], w1 = p1[2], dx = ux1 - ux0, dy = uy1 - uy0, d2 = dx * dx + dy * dy, i, S;
+    if (d2 < ε2) {
+      S = Math.log(w1 / w0) / ρ;
+      i = function(t) {
+        return [ ux0 + t * dx, uy0 + t * dy, w0 * Math.exp(ρ * t * S) ];
+      };
+    } else {
+      var d1 = Math.sqrt(d2), b0 = (w1 * w1 - w0 * w0 + ρ4 * d2) / (2 * w0 * ρ2 * d1), b1 = (w1 * w1 - w0 * w0 - ρ4 * d2) / (2 * w1 * ρ2 * d1), r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0), r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1);
+      S = (r1 - r0) / ρ;
+      i = function(t) {
+        var s = t * S, coshr0 = d3_cosh(r0), u = w0 / (ρ2 * d1) * (coshr0 * d3_tanh(ρ * s + r0) - d3_sinh(r0));
         return [ ux0 + u * dx, uy0 + u * dy, w0 * coshr0 / d3_cosh(ρ * s + r0) ];
-      }
-      return [ ux0 + t * dx, uy0 + t * dy, w0 * Math.exp(ρ * s) ];
+      };
     }
-    interpolate.duration = S * 1e3;
-    return interpolate;
+    i.duration = S * 1e3;
+    return i;
   };
   d3.behavior.zoom = function() {
     var view = {
@@ -1405,8 +1409,9 @@ module.exports = scaleFn;
       view = {
         x: view.x,
         y: view.y,
-        k: +_
+        k: null
       };
+      scaleTo(+_);
       rescale();
       return zoom;
     };
@@ -1505,7 +1510,7 @@ module.exports = scaleFn;
       }), center0 = null;
     }
     function mousedowned() {
-      var that = this, target = d3.event.target, dispatch = event.of(that, arguments), dragged = 0, subject = d3.select(d3_window(that)).on(mousemove, moved).on(mouseup, ended), location0 = location(d3.mouse(that)), dragRestore = d3_event_dragSuppress(that);
+      var that = this, dispatch = event.of(that, arguments), dragged = 0, subject = d3.select(d3_window(that)).on(mousemove, moved).on(mouseup, ended), location0 = location(d3.mouse(that)), dragRestore = d3_event_dragSuppress(that);
       d3_selection_interrupt.call(that);
       zoomstarted(dispatch);
       function moved() {
@@ -1515,7 +1520,7 @@ module.exports = scaleFn;
       }
       function ended() {
         subject.on(mousemove, null).on(mouseup, null);
-        dragRestore(dragged && d3.event.target === target);
+        dragRestore(dragged);
         zoomended(dispatch);
       }
     }
@@ -1737,9 +1742,8 @@ module.exports = scaleFn;
     return v < 16 ? "0" + Math.max(0, v).toString(16) : Math.min(255, v).toString(16);
   }
   function d3_rgb_parse(format, rgb, hsl) {
-    format = format.toLowerCase();
     var r = 0, g = 0, b = 0, m1, m2, color;
-    m1 = /([a-z]+)\((.*)\)/.exec(format);
+    m1 = /([a-z]+)\((.*)\)/.exec(format = format.toLowerCase());
     if (m1) {
       m2 = m1[2].split(",");
       switch (m1[1]) {
@@ -2154,17 +2158,19 @@ module.exports = scaleFn;
   };
   d3.csv = d3.dsv(",", "text/csv");
   d3.tsv = d3.dsv("	", "text/tab-separated-values");
-  var d3_timer_queueHead, d3_timer_queueTail, d3_timer_interval, d3_timer_timeout, d3_timer_active, d3_timer_frame = this[d3_vendorSymbol(this, "requestAnimationFrame")] || function(callback) {
+  var d3_timer_queueHead, d3_timer_queueTail, d3_timer_interval, d3_timer_timeout, d3_timer_frame = this[d3_vendorSymbol(this, "requestAnimationFrame")] || function(callback) {
     setTimeout(callback, 17);
   };
-  d3.timer = function(callback, delay, then) {
+  d3.timer = function() {
+    d3_timer.apply(this, arguments);
+  };
+  function d3_timer(callback, delay, then) {
     var n = arguments.length;
     if (n < 2) delay = 0;
     if (n < 3) then = Date.now();
     var time = then + delay, timer = {
       c: callback,
       t: time,
-      f: false,
       n: null
     };
     if (d3_timer_queueTail) d3_timer_queueTail.n = timer; else d3_timer_queueHead = timer;
@@ -2174,7 +2180,8 @@ module.exports = scaleFn;
       d3_timer_interval = 1;
       d3_timer_frame(d3_timer_step);
     }
-  };
+    return timer;
+  }
   function d3_timer_step() {
     var now = d3_timer_mark(), delay = d3_timer_sweep() - now;
     if (delay > 24) {
@@ -2193,22 +2200,21 @@ module.exports = scaleFn;
     d3_timer_sweep();
   };
   function d3_timer_mark() {
-    var now = Date.now();
-    d3_timer_active = d3_timer_queueHead;
-    while (d3_timer_active) {
-      if (now >= d3_timer_active.t) d3_timer_active.f = d3_timer_active.c(now - d3_timer_active.t);
-      d3_timer_active = d3_timer_active.n;
+    var now = Date.now(), timer = d3_timer_queueHead;
+    while (timer) {
+      if (now >= timer.t && timer.c(now - timer.t)) timer.c = null;
+      timer = timer.n;
     }
     return now;
   }
   function d3_timer_sweep() {
     var t0, t1 = d3_timer_queueHead, time = Infinity;
     while (t1) {
-      if (t1.f) {
-        t1 = t0 ? t0.n = t1.n : d3_timer_queueHead = t1.n;
-      } else {
+      if (t1.c) {
         if (t1.t < time) time = t1.t;
         t1 = (t0 = t1).n;
+      } else {
+        t1 = t0 ? t0.n = t1.n : d3_timer_queueHead = t1.n;
       }
     }
     d3_timer_queueTail = t0;
@@ -2223,7 +2229,7 @@ module.exports = scaleFn;
   var d3_formatPrefixes = [ "y", "z", "a", "f", "p", "n", "µ", "m", "", "k", "M", "G", "T", "P", "E", "Z", "Y" ].map(d3_formatPrefix);
   d3.formatPrefix = function(value, precision) {
     var i = 0;
-    if (value) {
+    if (value = +value) {
       if (value < 0) value *= -1;
       if (precision) value = d3.round(value, d3_format_precision(value, precision));
       i = 1 + Math.floor(1e-12 + Math.log(value) / Math.LN10);
@@ -2573,7 +2579,8 @@ module.exports = scaleFn;
         if (i != string.length) return null;
         if ("p" in d) d.H = d.H % 12 + d.p * 12;
         var localZ = d.Z != null && d3_date !== d3_date_utc, date = new (localZ ? d3_date_utc : d3_date)();
-        if ("j" in d) date.setFullYear(d.y, 0, d.j); else if ("w" in d && ("W" in d || "U" in d)) {
+        if ("j" in d) date.setFullYear(d.y, 0, d.j); else if ("W" in d || "U" in d) {
+          if (!("w" in d)) d.w = "W" in d ? 1 : 0;
           date.setFullYear(d.y, 0, 1);
           date.setFullYear(d.y, 0, "W" in d ? (d.w + 6) % 7 + d.W * 7 - (date.getDay() + 5) % 7 : d.w + d.U * 7 - (date.getDay() + 6) % 7);
         } else date.setFullYear(d.y, d.m, d.d);
@@ -3557,7 +3564,7 @@ module.exports = scaleFn;
         λ0 = λ, sinφ0 = sinφ, cosφ0 = cosφ, point0 = point;
       }
     }
-    return (polarAngle < -ε || polarAngle < ε && d3_geo_areaRingSum < 0) ^ winding & 1;
+    return (polarAngle < -ε || polarAngle < ε && d3_geo_areaRingSum < -ε) ^ winding & 1;
   }
   function d3_geo_clipCircle(radius) {
     var cr = Math.cos(radius), smallRadius = cr > 0, notHemisphere = abs(cr) > ε, interpolate = d3_geo_circleInterpolate(radius, 6 * d3_radians);
@@ -6025,54 +6032,68 @@ module.exports = scaleFn;
     f: 0
   };
   d3.interpolateTransform = d3_interpolateTransform;
-  function d3_interpolateTransform(a, b) {
-    var s = [], q = [], n, A = d3.transform(a), B = d3.transform(b), ta = A.translate, tb = B.translate, ra = A.rotate, rb = B.rotate, wa = A.skew, wb = B.skew, ka = A.scale, kb = B.scale;
-    if (ta[0] != tb[0] || ta[1] != tb[1]) {
-      s.push("translate(", null, ",", null, ")");
+  function d3_interpolateTransformPop(s) {
+    return s.length ? s.pop() + "," : "";
+  }
+  function d3_interpolateTranslate(ta, tb, s, q) {
+    if (ta[0] !== tb[0] || ta[1] !== tb[1]) {
+      var i = s.push("translate(", null, ",", null, ")");
       q.push({
-        i: 1,
+        i: i - 4,
         x: d3_interpolateNumber(ta[0], tb[0])
       }, {
-        i: 3,
+        i: i - 2,
         x: d3_interpolateNumber(ta[1], tb[1])
       });
     } else if (tb[0] || tb[1]) {
       s.push("translate(" + tb + ")");
-    } else {
-      s.push("");
     }
-    if (ra != rb) {
+  }
+  function d3_interpolateRotate(ra, rb, s, q) {
+    if (ra !== rb) {
       if (ra - rb > 180) rb += 360; else if (rb - ra > 180) ra += 360;
       q.push({
-        i: s.push(s.pop() + "rotate(", null, ")") - 2,
+        i: s.push(d3_interpolateTransformPop(s) + "rotate(", null, ")") - 2,
         x: d3_interpolateNumber(ra, rb)
       });
     } else if (rb) {
-      s.push(s.pop() + "rotate(" + rb + ")");
+      s.push(d3_interpolateTransformPop(s) + "rotate(" + rb + ")");
     }
-    if (wa != wb) {
+  }
+  function d3_interpolateSkew(wa, wb, s, q) {
+    if (wa !== wb) {
       q.push({
-        i: s.push(s.pop() + "skewX(", null, ")") - 2,
+        i: s.push(d3_interpolateTransformPop(s) + "skewX(", null, ")") - 2,
         x: d3_interpolateNumber(wa, wb)
       });
     } else if (wb) {
-      s.push(s.pop() + "skewX(" + wb + ")");
+      s.push(d3_interpolateTransformPop(s) + "skewX(" + wb + ")");
     }
-    if (ka[0] != kb[0] || ka[1] != kb[1]) {
-      n = s.push(s.pop() + "scale(", null, ",", null, ")");
+  }
+  function d3_interpolateScale(ka, kb, s, q) {
+    if (ka[0] !== kb[0] || ka[1] !== kb[1]) {
+      var i = s.push(d3_interpolateTransformPop(s) + "scale(", null, ",", null, ")");
       q.push({
-        i: n - 4,
+        i: i - 4,
         x: d3_interpolateNumber(ka[0], kb[0])
       }, {
-        i: n - 2,
+        i: i - 2,
         x: d3_interpolateNumber(ka[1], kb[1])
       });
-    } else if (kb[0] != 1 || kb[1] != 1) {
-      s.push(s.pop() + "scale(" + kb + ")");
+    } else if (kb[0] !== 1 || kb[1] !== 1) {
+      s.push(d3_interpolateTransformPop(s) + "scale(" + kb + ")");
     }
-    n = q.length;
+  }
+  function d3_interpolateTransform(a, b) {
+    var s = [], q = [];
+    a = d3.transform(a), b = d3.transform(b);
+    d3_interpolateTranslate(a.translate, b.translate, s, q);
+    d3_interpolateRotate(a.rotate, b.rotate, s, q);
+    d3_interpolateSkew(a.skew, b.skew, s, q);
+    d3_interpolateScale(a.scale, b.scale, s, q);
+    a = b = null;
     return function(t) {
-      var i = -1, o;
+      var i = -1, n = q.length, o;
       while (++i < n) s[(o = q[i]).i] = o.x(t);
       return s.join("");
     };
@@ -6176,7 +6197,7 @@ module.exports = scaleFn;
           index: di,
           startAngle: x0,
           endAngle: x,
-          value: (x - x0) / k
+          value: groupSums[di]
         };
         x += padding;
       }
@@ -6244,7 +6265,7 @@ module.exports = scaleFn;
     return chord;
   };
   d3.layout.force = function() {
-    var force = {}, event = d3.dispatch("start", "tick", "end"), size = [ 1, 1 ], drag, alpha, friction = .9, linkDistance = d3_layout_forceLinkDistance, linkStrength = d3_layout_forceLinkStrength, charge = -30, chargeDistance2 = d3_layout_forceChargeDistance2, gravity = .1, theta2 = .64, nodes = [], links = [], distances, strengths, charges;
+    var force = {}, event = d3.dispatch("start", "tick", "end"), timer, size = [ 1, 1 ], drag, alpha, friction = .9, linkDistance = d3_layout_forceLinkDistance, linkStrength = d3_layout_forceLinkStrength, charge = -30, chargeDistance2 = d3_layout_forceChargeDistance2, gravity = .1, theta2 = .64, nodes = [], links = [], distances, strengths, charges;
     function repulse(node) {
       return function(quad, x1, _, x2) {
         if (quad.point !== node) {
@@ -6268,6 +6289,7 @@ module.exports = scaleFn;
     }
     force.tick = function() {
       if ((alpha *= .99) < .005) {
+        timer = null;
         event.end({
           type: "end",
           alpha: alpha = 0
@@ -6285,7 +6307,7 @@ module.exports = scaleFn;
           l = alpha * strengths[i] * ((l = Math.sqrt(l)) - distances[i]) / l;
           x *= l;
           y *= l;
-          t.x -= x * (k = s.weight / (t.weight + s.weight));
+          t.x -= x * (k = s.weight + t.weight ? s.weight / (s.weight + t.weight) : .5);
           t.y -= y * k;
           s.x += x * (k = 1 - k);
           s.y += y * k;
@@ -6381,13 +6403,21 @@ module.exports = scaleFn;
       if (!arguments.length) return alpha;
       x = +x;
       if (alpha) {
-        if (x > 0) alpha = x; else alpha = 0;
+        if (x > 0) {
+          alpha = x;
+        } else {
+          timer.c = null, timer.t = NaN, timer = null;
+          event.end({
+            type: "end",
+            alpha: alpha = 0
+          });
+        }
       } else if (x > 0) {
         event.start({
           type: "start",
           alpha: alpha = x
         });
-        d3.timer(force.tick);
+        timer = d3_timer(force.tick);
       }
       return force;
     };
@@ -6641,7 +6671,7 @@ module.exports = scaleFn;
     function pie(data) {
       var n = data.length, values = data.map(function(d, i) {
         return +value.call(pie, d, i);
-      }), a = +(typeof startAngle === "function" ? startAngle.apply(this, arguments) : startAngle), da = (typeof endAngle === "function" ? endAngle.apply(this, arguments) : endAngle) - a, p = Math.min(Math.abs(da) / n, +(typeof padAngle === "function" ? padAngle.apply(this, arguments) : padAngle)), pa = p * (da < 0 ? -1 : 1), k = (da - n * pa) / d3.sum(values), index = d3.range(n), arcs = [], v;
+      }), a = +(typeof startAngle === "function" ? startAngle.apply(this, arguments) : startAngle), da = (typeof endAngle === "function" ? endAngle.apply(this, arguments) : endAngle) - a, p = Math.min(Math.abs(da) / n, +(typeof padAngle === "function" ? padAngle.apply(this, arguments) : padAngle)), pa = p * (da < 0 ? -1 : 1), sum = d3.sum(values), k = sum ? (da - n * pa) / sum : 0, index = d3.range(n), arcs = [], v;
       if (sort != null) index.sort(sort === d3_layout_pieSortByValue ? function(i, j) {
         return values[j] - values[i];
       } : function(i, j) {
@@ -7354,10 +7384,8 @@ module.exports = scaleFn;
     }
     function treemap(d) {
       var nodes = stickies || hierarchy(d), root = nodes[0];
-      root.x = 0;
-      root.y = 0;
-      root.dx = size[0];
-      root.dy = size[1];
+      root.x = root.y = 0;
+      if (root.value) root.dx = size[0], root.dy = size[1]; else root.dx = root.dy = 0;
       if (stickies) hierarchy.revalue(root);
       scale([ root ], root.dx * root.dy / root.value);
       (stickies ? stickify : squarify)(root);
@@ -7577,7 +7605,9 @@ module.exports = scaleFn;
     return d3.rebind(scale, linear, "range", "rangeRound", "interpolate", "clamp");
   }
   function d3_scale_linearNice(domain, m) {
-    return d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    d3_scale_nice(domain, d3_scale_niceStep(d3_scale_linearTickRange(domain, m)[2]));
+    return domain;
   }
   function d3_scale_linearTickRange(domain, m) {
     if (m == null) m = 10;
@@ -7679,10 +7709,11 @@ module.exports = scaleFn;
     scale.tickFormat = function(n, format) {
       if (!arguments.length) return d3_scale_logFormat;
       if (arguments.length < 2) format = d3_scale_logFormat; else if (typeof format !== "function") format = d3.format(format);
-      var k = Math.max(.1, n / scale.ticks().length), f = positive ? (e = 1e-12, Math.ceil) : (e = -1e-12, 
-      Math.floor), e;
+      var k = Math.max(1, base * n / scale.ticks().length);
       return function(d) {
-        return d / pow(f(log(d) + e)) <= k ? format(d) : "";
+        var i = d / pow(Math.round(log(d)));
+        if (i * base < base - .5) i *= base;
+        return i <= k ? format(d) : "";
       };
     };
     scale.copy = function() {
@@ -8021,11 +8052,16 @@ module.exports = scaleFn;
       } else {
         x2 = y2 = 0;
       }
-      if ((rc = Math.min(Math.abs(r1 - r0) / 2, +cornerRadius.apply(this, arguments))) > .001) {
+      if (da > ε && (rc = Math.min(Math.abs(r1 - r0) / 2, +cornerRadius.apply(this, arguments))) > .001) {
         cr = r0 < r1 ^ cw ? 0 : 1;
-        var oc = x3 == null ? [ x2, y2 ] : x1 == null ? [ x0, y0 ] : d3_geom_polygonIntersect([ x0, y0 ], [ x3, y3 ], [ x1, y1 ], [ x2, y2 ]), ax = x0 - oc[0], ay = y0 - oc[1], bx = x1 - oc[0], by = y1 - oc[1], kc = 1 / Math.sin(Math.acos((ax * bx + ay * by) / (Math.sqrt(ax * ax + ay * ay) * Math.sqrt(bx * bx + by * by))) / 2), lc = Math.sqrt(oc[0] * oc[0] + oc[1] * oc[1]);
+        var rc1 = rc, rc0 = rc;
+        if (da < π) {
+          var oc = x3 == null ? [ x2, y2 ] : x1 == null ? [ x0, y0 ] : d3_geom_polygonIntersect([ x0, y0 ], [ x3, y3 ], [ x1, y1 ], [ x2, y2 ]), ax = x0 - oc[0], ay = y0 - oc[1], bx = x1 - oc[0], by = y1 - oc[1], kc = 1 / Math.sin(Math.acos((ax * bx + ay * by) / (Math.sqrt(ax * ax + ay * ay) * Math.sqrt(bx * bx + by * by))) / 2), lc = Math.sqrt(oc[0] * oc[0] + oc[1] * oc[1]);
+          rc0 = Math.min(rc, (r0 - lc) / (kc - 1));
+          rc1 = Math.min(rc, (r1 - lc) / (kc + 1));
+        }
         if (x1 != null) {
-          var rc1 = Math.min(rc, (r1 - lc) / (kc + 1)), t30 = d3_svg_arcCornerTangents(x3 == null ? [ x2, y2 ] : [ x3, y3 ], [ x0, y0 ], r1, rc1, cw), t12 = d3_svg_arcCornerTangents([ x1, y1 ], [ x2, y2 ], r1, rc1, cw);
+          var t30 = d3_svg_arcCornerTangents(x3 == null ? [ x2, y2 ] : [ x3, y3 ], [ x0, y0 ], r1, rc1, cw), t12 = d3_svg_arcCornerTangents([ x1, y1 ], [ x2, y2 ], r1, rc1, cw);
           if (rc === rc1) {
             path.push("M", t30[0], "A", rc1, ",", rc1, " 0 0,", cr, " ", t30[1], "A", r1, ",", r1, " 0 ", 1 - cw ^ d3_svg_arcSweep(t30[1][0], t30[1][1], t12[1][0], t12[1][1]), ",", cw, " ", t12[1], "A", rc1, ",", rc1, " 0 0,", cr, " ", t12[0]);
           } else {
@@ -8035,7 +8071,7 @@ module.exports = scaleFn;
           path.push("M", x0, ",", y0);
         }
         if (x3 != null) {
-          var rc0 = Math.min(rc, (r0 - lc) / (kc - 1)), t03 = d3_svg_arcCornerTangents([ x0, y0 ], [ x3, y3 ], r0, -rc0, cw), t21 = d3_svg_arcCornerTangents([ x2, y2 ], x1 == null ? [ x0, y0 ] : [ x1, y1 ], r0, -rc0, cw);
+          var t03 = d3_svg_arcCornerTangents([ x0, y0 ], [ x3, y3 ], r0, -rc0, cw), t21 = d3_svg_arcCornerTangents([ x2, y2 ], x1 == null ? [ x0, y0 ] : [ x1, y1 ], r0, -rc0, cw);
           if (rc === rc0) {
             path.push("L", t21[0], "A", rc0, ",", rc0, " 0 0,", cr, " ", t21[1], "A", r0, ",", r0, " 0 ", cw ^ d3_svg_arcSweep(t21[1][0], t21[1][1], t03[1][0], t03[1][1]), ",", 1 - cw, " ", t03[1], "A", rc0, ",", rc0, " 0 0,", cr, " ", t03[0]);
           } else {
@@ -8117,7 +8153,7 @@ module.exports = scaleFn;
     return (x0 - x1) * y0 - (y0 - y1) * x0 > 0 ? 0 : 1;
   }
   function d3_svg_arcCornerTangents(p0, p1, r1, rc, cw) {
-    var x01 = p0[0] - p1[0], y01 = p0[1] - p1[1], lo = (cw ? rc : -rc) / Math.sqrt(x01 * x01 + y01 * y01), ox = lo * y01, oy = -lo * x01, x1 = p0[0] + ox, y1 = p0[1] + oy, x2 = p1[0] + ox, y2 = p1[1] + oy, x3 = (x1 + x2) / 2, y3 = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d2 = dx * dx + dy * dy, r = r1 - rc, D = x1 * y2 - x2 * y1, d = (dy < 0 ? -1 : 1) * Math.sqrt(r * r * d2 - D * D), cx0 = (D * dy - dx * d) / d2, cy0 = (-D * dx - dy * d) / d2, cx1 = (D * dy + dx * d) / d2, cy1 = (-D * dx + dy * d) / d2, dx0 = cx0 - x3, dy0 = cy0 - y3, dx1 = cx1 - x3, dy1 = cy1 - y3;
+    var x01 = p0[0] - p1[0], y01 = p0[1] - p1[1], lo = (cw ? rc : -rc) / Math.sqrt(x01 * x01 + y01 * y01), ox = lo * y01, oy = -lo * x01, x1 = p0[0] + ox, y1 = p0[1] + oy, x2 = p1[0] + ox, y2 = p1[1] + oy, x3 = (x1 + x2) / 2, y3 = (y1 + y2) / 2, dx = x2 - x1, dy = y2 - y1, d2 = dx * dx + dy * dy, r = r1 - rc, D = x1 * y2 - x2 * y1, d = (dy < 0 ? -1 : 1) * Math.sqrt(Math.max(0, r * r * d2 - D * D)), cx0 = (D * dy - dx * d) / d2, cy0 = (-D * dx - dy * d) / d2, cx1 = (D * dy + dx * d) / d2, cy1 = (-D * dx + dy * d) / d2, dx0 = cx0 - x3, dy0 = cy0 - y3, dx1 = cx1 - x3, dy1 = cy1 - y3;
     if (dx0 * dx0 + dy0 * dy0 > dx1 * dx1 + dy1 * dy1) cx0 = cx1, cy0 = cy1;
     return [ [ cx0 - ox, cy0 - oy ], [ cx0 * r1 / r, cy0 * r1 / r ] ];
   }
@@ -8189,10 +8225,10 @@ module.exports = scaleFn;
     value.closed = /-closed$/.test(key);
   });
   function d3_svg_lineLinear(points) {
-    return points.join("L");
+    return points.length > 1 ? points.join("L") : points + "Z";
   }
   function d3_svg_lineLinearClosed(points) {
-    return d3_svg_lineLinear(points) + "Z";
+    return points.join("L") + "Z";
   }
   function d3_svg_lineStep(points) {
     var i = 0, n = points.length, p = points[0], path = [ p[0], ",", p[1] ];
@@ -8214,7 +8250,7 @@ module.exports = scaleFn;
     return points.length < 4 ? d3_svg_lineLinear(points) : points[1] + d3_svg_lineHermite(points.slice(1, -1), d3_svg_lineCardinalTangents(points, tension));
   }
   function d3_svg_lineCardinalClosed(points, tension) {
-    return points.length < 3 ? d3_svg_lineLinear(points) : points[0] + d3_svg_lineHermite((points.push(points[0]), 
+    return points.length < 3 ? d3_svg_lineLinearClosed(points) : points[0] + d3_svg_lineHermite((points.push(points[0]), 
     points), d3_svg_lineCardinalTangents([ points[points.length - 2] ].concat(points, [ points[1] ]), tension));
   }
   function d3_svg_lineCardinal(points, tension) {
@@ -8650,9 +8686,11 @@ module.exports = scaleFn;
   var d3_selection_interrupt = d3_selection_interruptNS(d3_transitionNamespace());
   function d3_selection_interruptNS(ns) {
     return function() {
-      var lock, active;
-      if ((lock = this[ns]) && (active = lock[lock.active])) {
-        if (--lock.count) delete lock[lock.active]; else delete this[ns];
+      var lock, activeId, active;
+      if ((lock = this[ns]) && (active = lock[activeId = lock.active])) {
+        active.timer.c = null;
+        active.timer.t = NaN;
+        if (--lock.count) delete lock[activeId]; else delete this[ns];
         lock.active += .5;
         active.event && active.event.interrupt.call(this, this.__data__, active.index);
       }
@@ -8907,12 +8945,68 @@ module.exports = scaleFn;
     var lock = node[ns] || (node[ns] = {
       active: 0,
       count: 0
-    }), transition = lock[id];
+    }), transition = lock[id], time, timer, duration, ease, tweens;
+    function schedule(elapsed) {
+      var delay = transition.delay;
+      timer.t = delay + time;
+      if (delay <= elapsed) return start(elapsed - delay);
+      timer.c = start;
+    }
+    function start(elapsed) {
+      var activeId = lock.active, active = lock[activeId];
+      if (active) {
+        active.timer.c = null;
+        active.timer.t = NaN;
+        --lock.count;
+        delete lock[activeId];
+        active.event && active.event.interrupt.call(node, node.__data__, active.index);
+      }
+      for (var cancelId in lock) {
+        if (+cancelId < id) {
+          var cancel = lock[cancelId];
+          cancel.timer.c = null;
+          cancel.timer.t = NaN;
+          --lock.count;
+          delete lock[cancelId];
+        }
+      }
+      timer.c = tick;
+      d3_timer(function() {
+        if (timer.c && tick(elapsed || 1)) {
+          timer.c = null;
+          timer.t = NaN;
+        }
+        return 1;
+      }, 0, time);
+      lock.active = id;
+      transition.event && transition.event.start.call(node, node.__data__, i);
+      tweens = [];
+      transition.tween.forEach(function(key, value) {
+        if (value = value.call(node, node.__data__, i)) {
+          tweens.push(value);
+        }
+      });
+      ease = transition.ease;
+      duration = transition.duration;
+    }
+    function tick(elapsed) {
+      var t = elapsed / duration, e = ease(t), n = tweens.length;
+      while (n > 0) {
+        tweens[--n].call(node, e);
+      }
+      if (t >= 1) {
+        transition.event && transition.event.end.call(node, node.__data__, i);
+        if (--lock.count) delete lock[id]; else delete node[ns];
+        return 1;
+      }
+    }
     if (!transition) {
-      var time = inherit.time;
+      time = inherit.time;
+      timer = d3_timer(schedule, 0, time);
       transition = lock[id] = {
         tween: new d3_Map(),
         time: time,
+        timer: timer,
         delay: inherit.delay,
         duration: inherit.duration,
         ease: inherit.ease,
@@ -8920,49 +9014,6 @@ module.exports = scaleFn;
       };
       inherit = null;
       ++lock.count;
-      d3.timer(function(elapsed) {
-        var delay = transition.delay, duration, ease, timer = d3_timer_active, tweened = [];
-        timer.t = delay + time;
-        if (delay <= elapsed) return start(elapsed - delay);
-        timer.c = start;
-        function start(elapsed) {
-          if (lock.active > id) return stop();
-          var active = lock[lock.active];
-          if (active) {
-            --lock.count;
-            delete lock[lock.active];
-            active.event && active.event.interrupt.call(node, node.__data__, active.index);
-          }
-          lock.active = id;
-          transition.event && transition.event.start.call(node, node.__data__, i);
-          transition.tween.forEach(function(key, value) {
-            if (value = value.call(node, node.__data__, i)) {
-              tweened.push(value);
-            }
-          });
-          ease = transition.ease;
-          duration = transition.duration;
-          d3.timer(function() {
-            timer.c = tick(elapsed || 1) ? d3_true : tick;
-            return 1;
-          }, 0, time);
-        }
-        function tick(elapsed) {
-          if (lock.active !== id) return 1;
-          var t = elapsed / duration, e = ease(t), n = tweened.length;
-          while (n > 0) {
-            tweened[--n].call(node, e);
-          }
-          if (t >= 1) {
-            transition.event && transition.event.end.call(node, node.__data__, i);
-            return stop();
-          }
-        }
-        function stop() {
-          if (--lock.count) delete lock[id]; else delete node[ns];
-          return 1;
-        }
-      }, 0, time);
     }
   }
   d3.svg.axis = function() {
@@ -9016,7 +9067,7 @@ module.exports = scaleFn;
     };
     axis.ticks = function() {
       if (!arguments.length) return tickArguments_;
-      tickArguments_ = arguments;
+      tickArguments_ = d3_array(arguments);
       return axis;
     };
     axis.tickValues = function(x) {
@@ -9538,8 +9589,7 @@ module.exports = scaleFn;
   d3.xml = d3_xhrType(function(request) {
     return request.responseXML;
   });
-  if (typeof define === "function" && define.amd) define(d3); else if (typeof module === "object" && module.exports) module.exports = d3;
-  this.d3 = d3;
+  if (typeof define === "function" && define.amd) this.d3 = d3, define(d3); else if (typeof module === "object" && module.exports) module.exports = d3; else this.d3 = d3;
 }();
 },{}],3:[function(require,module,exports){
 this.j$ = this.jStat = (function(Math, undefined) {
@@ -9602,7 +9652,7 @@ jStat._init = function _init(args) {
       if (isFunction(args[1]))
         args[0] = jStat.map(args[0], args[1]);
       // Iterate over each is faster than this.push.apply(this, args[0].
-      for (i = 0; i < args[0].length; i++)
+      for (var i = 0; i < args[0].length; i++)
         this[i] = args[0][i];
       this.length = args[0].length;
 
@@ -9658,7 +9708,7 @@ jStat.extend = function extend(obj) {
     return this;
   }
 
-  for (i = 1; i < arguments.length; i++) {
+  for (var i = 1; i < arguments.length; i++) {
     for (j in arguments[i])
       obj[j] = arguments[i][j];
   }
@@ -9688,18 +9738,49 @@ jStat.dimensions = function dimensions(arr) {
 };
 
 
-// Returns a specified row as a vector
+// Returns a specified row as a vector or return a sub matrix by pick some rows
 jStat.row = function row(arr, index) {
+  if (isArray(index)) {
+    return index.map(function(i) {
+      return jStat.row(arr, i);
+    })
+  }
   return arr[index];
 };
 
 
-// Returns the specified column as a vector
-jStat.col = function cols(arr, index) {
+// return row as array
+// rowa([[1,2],[3,4]],0) -> [1,2]
+jStat.rowa = function rowa(arr, i) {
+  return jStat.row(arr, i);
+};
+
+
+// Returns the specified column as a vector or return a sub matrix by pick some
+// columns
+jStat.col = function col(arr, index) {
+  if (isArray(index)) {
+    var submat = jStat.arange(arr.length).map(function(i) {
+      return new Array(index.length);
+    });
+    index.forEach(function(ind, i){
+      jStat.arange(arr.length).forEach(function(j) {
+        submat[j][i] = arr[j][ind];
+      });
+    });
+    return submat;
+  }
   var column = new Array(arr.length);
   for (var i = 0; i < arr.length; i++)
     column[i] = [arr[i][index]];
   return column;
+};
+
+
+// return column as array
+// cola([[1,2],[3,4]],0) -> [1,3]
+jStat.cola = function cola(arr, i) {
+  return jStat.col(arr, i).map(function(a){ return a[0] });
 };
 
 
@@ -9734,7 +9815,7 @@ jStat.transpose = function transpose(arr) {
   rows = arr.length;
   cols = arr[0].length;
 
-  for (i = 0; i < cols; i++) {
+  for (var i = 0; i < cols; i++) {
     objArr = new Array(rows);
     for (j = 0; j < rows; j++)
       objArr[j] = arr[j][i];
@@ -9810,7 +9891,7 @@ jStat.create = function  create(rows, cols, func) {
     cols = rows;
   }
 
-  for (i = 0; i < rows; i++) {
+  for (var i = 0; i < rows; i++) {
     res[i] = new Array(cols);
     for (j = 0; j < cols; j++)
       res[i][j] = func(i, j);
@@ -9906,6 +9987,189 @@ jStat.seq = function seq(min, max, length, func) {
   }
 
   return arr;
+};
+
+
+// arange(5) -> [0,1,2,3,4]
+// arange(1,5) -> [1,2,3,4]
+// arange(5,1,-1) -> [5,4,3,2]
+jStat.arange = function arange(start, end, step) {
+  var rl = [];
+  step = step || 1;
+  if (end === undefined) {
+    end = start;
+    start = 0;
+  }
+  if (start === end || step === 0) {
+    return [];
+  }
+  if (start < end && step < 0) {
+    return [];
+  }
+  if (start > end && step > 0) {
+    return [];
+  }
+  if (step > 0) {
+    for (i = start; i < end; i += step) {
+      rl.push(i);
+    }
+  } else {
+    for (i = start; i > end; i += step) {
+      rl.push(i);
+    }
+  }
+  return rl;
+};
+
+
+// A=[[1,2,3],[4,5,6],[7,8,9]]
+// slice(A,{row:{end:2},col:{start:1}}) -> [[2,3],[5,6]]
+// slice(A,1,{start:1}) -> [5,6]
+// as numpy code A[:2,1:]
+jStat.slice = (function(){
+  function _slice(list, start, end, step) {
+    // note it's not equal to range.map mode it's a bug
+    var i;
+    var rl = [];
+    var length = list.length;
+    if (start === undefined && end === undefined && step === undefined) {
+      return jStat.copy(list);
+    }
+
+    start = start || 0;
+    end = end || list.length;
+    start = start >= 0 ? start : length + start;
+    end = end >= 0 ? end : length + end;
+    step = step || 1;
+    if (start === end || step === 0) {
+      return [];
+    }
+    if (start < end && step < 0) {
+      return [];
+    }
+    if (start > end && step > 0) {
+      return [];
+    }
+    if (step > 0) {
+      for (i = start; i < end; i += step) {
+        rl.push(list[i]);
+      }
+    } else {
+      for (i = start; i > end;i += step) {
+        rl.push(list[i]);
+      }
+    }
+    return rl;
+  }
+
+  function slice(list, rcSlice) {
+    rcSlice = rcSlice || {};
+    if (isNumber(rcSlice.row)) {
+      if (isNumber(rcSlice.col))
+        return list[rcSlice.row][rcSlice.col];
+      var row = jStat.rowa(list, rcSlice.row);
+      var colSlice = rcSlice.col || {};
+      return _slice(row, colSlice.start, colSlice.end, colSlice.step);
+    }
+
+    if (isNumber(rcSlice.col)) {
+      var col = jStat.cola(list, rcSlice.col);
+      var rowSlice = rcSlice.row || {};
+      return _slice(col, rowSlice.start, rowSlice.end, rowSlice.step);
+    }
+
+    var rowSlice = rcSlice.row || {};
+    var colSlice = rcSlice.col || {};
+    var rows = _slice(list, rowSlice.start, rowSlice.end, rowSlice.step);
+    return rows.map(function(row) {
+      return _slice(row, colSlice.start, colSlice.end, colSlice.step);
+    });
+  }
+
+  return slice;
+}());
+
+
+// A=[[1,2,3],[4,5,6],[7,8,9]]
+// sliceAssign(A,{row:{start:1},col:{start:1}},[[0,0],[0,0]])
+// A=[[1,2,3],[4,0,0],[7,0,0]]
+jStat.sliceAssign = function sliceAssign(A, rcSlice, B) {
+  if (isNumber(rcSlice.row)) {
+    if (isNumber(rcSlice.col))
+      return A[rcSlice.row][rcSlice.col] = B;
+    rcSlice.col = rcSlice.col || {};
+    rcSlice.col.start = rcSlice.col.start || 0;
+    rcSlice.col.end = rcSlice.col.end || A[0].length;
+    rcSlice.col.step = rcSlice.col.step || 1;
+    var nl = jStat.arange(rcSlice.col.start,
+                          Math.min(A.length, rcSlice.col.end),
+                          rcSlice.col.step);
+    var m = rcSlice.row;
+    nl.forEach(function(n, i) {
+      A[m][n] = B[i];
+    });
+    return A;
+  }
+
+  if (isNumber(rcSlice.col)) {
+    rcSlice.row = rcSlice.row || {};
+    rcSlice.row.start = rcSlice.row.start || 0;
+    rcSlice.row.end = rcSlice.row.end || A.length;
+    rcSlice.row.step = rcSlice.row.step || 1;
+    var ml = jStat.arange(rcSlice.row.start,
+                          Math.min(A[0].length, rcSlice.row.end),
+                          rcSlice.row.step);
+    var n = rcSlice.col;
+    ml.forEach(function(m, j) {
+      A[m][n] = B[j];
+    });
+    return A;
+  }
+
+  if (B[0].length === undefined) {
+    B = [B];
+  }
+  rcSlice.row.start = rcSlice.row.start || 0;
+  rcSlice.row.end = rcSlice.row.end || A.length;
+  rcSlice.row.step = rcSlice.row.step || 1;
+  rcSlice.col.start = rcSlice.col.start || 0;
+  rcSlice.col.end = rcSlice.col.end || A[0].length;
+  rcSlice.col.step = rcSlice.col.step || 1;
+  var ml = jStat.arange(rcSlice.row.start,
+                        Math.min(A.length, rcSlice.row.end),
+                        rcSlice.row.step);
+  var nl = jStat.arange(rcSlice.col.start,
+                        Math.min(A[0].length, rcSlice.col.end),
+                        rcSlice.col.step);
+  ml.forEach(function(m, i) {
+    nl.forEach(function(n, j) {
+      A[m][n] = B[i][j];
+    });
+  });
+  return A;
+};
+
+
+// [1,2,3] ->
+// [[1,0,0],[0,2,0],[0,0,3]]
+jStat.diagonal = function diagonal(diagArray) {
+  var mat = jStat.zeros(diagArray.length, diagArray.length);
+  diagArray.forEach(function(t, i) {
+    mat[i][i] = t;
+  });
+  return mat;
+};
+
+
+// return copy of A
+jStat.copy = function copy(A) {
+  return A.map(function(row) {
+    if (isNumber(row))
+      return row;
+    return row.map(function(t) {
+      return t;
+    });
+  });
 };
 
 
@@ -10090,6 +10354,19 @@ jStat.max = function max(arr) {
 };
 
 
+// unique values of an array
+jStat.unique = function unique(arr) {
+  var hash = {}, _arr = [];
+  for(var i = 0; i < arr.length; i++) {
+    if (!hash[arr[i]]) {
+      hash[arr[i]] = true;
+      _arr.push(arr[i]);
+    }
+  }
+  return _arr;
+};
+
+
 // mean value of an array
 jStat.mean = function mean(arr) {
   return jStat.sum(arr) / arr.length;
@@ -10136,9 +10413,28 @@ jStat.diff = function diff(arr) {
   var diffs = [];
   var arrLen = arr.length;
   var i;
-  for (i = 1; i < arrLen; i++)
+  for (var i = 1; i < arrLen; i++)
     diffs.push(arr[i] - arr[i - 1]);
   return diffs;
+};
+
+
+// ranks of an array
+jStat.rank = function (arr) {
+  var arrlen = arr.length;
+  var sorted = arr.slice().sort(ascNum);
+  var ranks = new Array(arrlen);
+  for (var i = 0; i < arrlen; i++) {
+    var first = sorted.indexOf(arr[i]);
+    var last = sorted.lastIndexOf(arr[i]);
+    if (first === last) {
+      var val = first;
+    } else {
+      var val = (first + last) / 2;
+    }
+    ranks[i] = val + 1;
+  }
+  return ranks;
 };
 
 
@@ -10154,7 +10450,7 @@ jStat.mode = function mode(arr) {
   var mode_arr = [];
   var i;
 
-  for (i = 0; i < arrLen; i++) {
+  for (var i = 0; i < arrLen; i++) {
     if (_arr[i] === _arr[i + 1]) {
       count++;
     } else {
@@ -10188,6 +10484,16 @@ jStat.variance = function variance(arr, flag) {
   return jStat.sumsqerr(arr) / (arr.length - (flag ? 1 : 0));
 };
 
+// deviation of an array
+jStat.deviation = function (arr) {
+  var mean = jStat.mean(arr);
+  var arrlen = arr.length;
+  var dev = new Array(arrlen);
+  for (var i = 0; i < arrlen; i++) {
+    dev[i] = arr[i] - mean;
+  }
+  return dev;
+};
 
 // standard deviation of an array
 // flag = true indicates sample instead of population
@@ -10201,7 +10507,7 @@ jStat.meandev = function meandev(arr) {
   var devSum = 0;
   var mean = jStat.mean(arr);
   var i;
-  for (i = arr.length - 1; i >= 0; i--)
+  for (var i = arr.length - 1; i >= 0; i--)
     devSum += Math.abs(arr[i] - mean);
   return devSum / arr.length;
 };
@@ -10212,7 +10518,7 @@ jStat.meddev = function meddev(arr) {
   var devSum = 0;
   var median = jStat.median(arr);
   var i;
-  for (i = arr.length - 1; i >= 0; i--)
+  for (var i = arr.length - 1; i >= 0; i--)
     devSum += Math.abs(arr[i] - median);
   return devSum / arr.length;
 };
@@ -10249,7 +10555,7 @@ jStat.quantiles = function quantiles(arr, quantilesArray, alphap, betap) {
   if (typeof betap === 'undefined')
     betap = 3 / 8;
 
-  for (i = 0; i < quantilesArray.length; i++) {
+  for (var i = 0; i < quantilesArray.length; i++) {
     p = quantilesArray[i];
     m = alphap + p * (1 - alphap - betap);
     aleph = n * p + m;
@@ -10289,7 +10595,7 @@ jStat.percentileOfScore = function percentileOfScore(arr, score, kind) {
   if (kind === 'strict')
     strict = true;
 
-  for (i = 0; i < len; i++) {
+  for (var i = 0; i < len; i++) {
     value = arr[i];
     if ((strict && value < score) ||
         (!strict && value <= score)) {
@@ -10310,9 +10616,9 @@ jStat.histogram = function histogram(arr, bins) {
   var bins = [];
   var i;
 
-  for (i = 0; i < binCnt; i++)
+  for (var i = 0; i < binCnt; i++)
     bins[i] = 0;
-  for (i = 0; i < len; i++)
+  for (var i = 0; i < len; i++)
     bins[Math.min(Math.floor(((arr[i] - first) / binWidth)), binCnt - 1)] += 1;
 
   return bins;
@@ -10327,7 +10633,7 @@ jStat.covariance = function covariance(arr1, arr2) {
   var sq_dev = new Array(arr1Len);
   var i;
 
-  for (i = 0; i < arr1Len; i++)
+  for (var i = 0; i < arr1Len; i++)
     sq_dev[i] = (arr1[i] - u) * (arr2[i] - v);
 
   return jStat.sum(sq_dev) / (arr1Len - 1);
@@ -10341,6 +10647,24 @@ jStat.corrcoeff = function corrcoeff(arr1, arr2) {
       jStat.stdev(arr2, 1);
 };
 
+  // (spearman's) rank correlation coefficient, sp
+jStat.spearmancoeff =  function (arr1, arr2) {
+  arr1 = jStat.rank(arr1);
+  arr2 = jStat.rank(arr2);
+  var arr1dev = jStat.deviation(arr1);
+  var arr2dev = jStat.deviation(arr2);
+  return jStat.sum(arr1dev.map(function (x, i) {
+    return x * arr2dev[i];
+  })) /
+  Math.sqrt(jStat.sum(arr1dev.map(function (x) {
+    return Math.pow(x, 2);
+    })) * jStat.sum(arr2dev.map(function (x) {
+      return Math.pow(x, 2);
+  }))
+  );
+}
+
+
 // statistical standardized moments (general form of skew/kurt)
 jStat.stanMoment = function stanMoment(arr, n) {
   var mu = jStat.mean(arr);
@@ -10348,7 +10672,7 @@ jStat.stanMoment = function stanMoment(arr, n) {
   var len = arr.length;
   var skewSum = 0;
 
-  for (i = 0; i < len; i++)
+  for (var i = 0; i < len; i++)
     skewSum += Math.pow((arr[i] - mu) / sigma, n);
 
   return skewSum / arr.length;
@@ -10442,9 +10766,9 @@ var jProto = jStat.prototype;
       return jStat[passfunc](this[0], fullbool);
     };
   })(funcs[i]);
-})(('sum sumsqrd sumsqerr sumrow product min max mean meansqerr geomean ' +
-    'median diff mode range variance stdev meandev meddev coeffvar quartiles ' +
-    'histogram skewness kurtosis').split(' '));
+})(('sum sumsqrd sumsqerr sumrow product min max unique mean meansqerr ' +
+    'geomean median diff rank mode range variance deviation stdev meandev ' +
+    'meddev coeffvar quartiles histogram skewness kurtosis').split(' '));
 
 
 // Extend jProto with functions that take arguments. Operations on matrices are
@@ -10542,7 +10866,7 @@ jStat.gammafn = function gammafn(x) {
   } else {
     z = (y -= n = (y | 0) - 1) - 1;
   }
-  for (i = 0; i < 8; ++i) {
+  for (var i = 0; i < 8; ++i) {
     xnum = (xnum + p[i]) * z;
     xden = xden * z + q[i];
   }
@@ -10550,7 +10874,7 @@ jStat.gammafn = function gammafn(x) {
   if (yi < y) {
     res /= yi;
   } else if (yi > y) {
-    for (i = 0; i < n; ++i) {
+    for (var i = 0; i < n; ++i) {
       res *= y;
       y++;
     }
@@ -11021,8 +11345,8 @@ jStat.randg = function randg(shape, n, m) {
   })(list[i]);
 })((
   'beta centralF cauchy chisquare exponential gamma invgamma kumaraswamy ' +
-  'lognormal noncentralt normal pareto studentt weibull uniform  binomial ' +
-  'negbin hypgeom poisson triangular'
+  'laplace lognormal noncentralt normal pareto studentt weibull uniform ' +
+  'binomial negbin hypgeom poisson triangular'
 ).split(' '));
 
 
@@ -11037,7 +11361,7 @@ jStat.extend(jStat.beta, {
     if (alpha == 1 && beta == 1)
       return 1;
 
-    if (alpha < 512 || beta < 512) {
+    if (alpha < 512 && beta < 512) {
       return (Math.pow(x, alpha - 1) * Math.pow(1 - x, beta - 1)) /
           jStat.betafn(alpha, beta);
     } else {
@@ -11087,7 +11411,7 @@ jStat.extend(jStat.centralF, {
     var p, q, f;
 
     if (x < 0)
-      return undefined;
+      return 0;
 
     if (df1 <= 2) {
       if (x === 0 && df1 < 2) {
@@ -11144,6 +11468,8 @@ jStat.extend(jStat.centralF, {
 // extend cauchy function with static methods
 jStat.extend(jStat.cauchy, {
   pdf: function pdf(x, local, scale) {
+    if (scale < 0) { return 0; }
+
     return (scale / (Math.pow(x - local, 2) + Math.pow(scale, 2))) / Math.PI;
   },
 
@@ -11174,6 +11500,8 @@ jStat.extend(jStat.cauchy, {
 // extend chisquare function with static methods
 jStat.extend(jStat.chisquare, {
   pdf: function pdf(x, dof) {
+    if (x < 0)
+      return 0;
     return (x === 0 && dof === 2) ? 0.5 :
         Math.exp((dof / 2 - 1) * Math.log(x) - x / 2 - (dof / 2) *
                  Math.log(2) - jStat.gammaln(dof / 2));
@@ -11253,7 +11581,10 @@ jStat.extend(jStat.exponential, {
 // extend gamma function with static methods
 jStat.extend(jStat.gamma, {
   pdf: function pdf(x, shape, scale) {
-    return Math.exp((shape - 1) * Math.log(x) - x / scale -
+    if (x < 0)
+      return 0;
+    return (x === 0 && shape === 1) ? 1 / scale :
+            Math.exp((shape - 1) * Math.log(x) - x / scale -
                     jStat.gammaln(shape) - shape * Math.log(scale));
   },
 
@@ -11288,6 +11619,8 @@ jStat.extend(jStat.gamma, {
 // extend inverse gamma function with static methods
 jStat.extend(jStat.invgamma, {
   pdf: function pdf(x, shape, scale) {
+    if (x <= 0)
+      return 0;
     return Math.exp(-(shape + 1) * Math.log(x) - scale / x -
                     jStat.gammaln(shape) + shape * Math.log(scale));
   },
@@ -11372,6 +11705,8 @@ jStat.extend(jStat.kumaraswamy, {
 // extend lognormal function with static methods
 jStat.extend(jStat.lognormal, {
   pdf: function pdf(x, mu, sigma) {
+    if (x <= 0)
+      return 0;
     return Math.exp(-Math.log(x) - 0.5 * Math.log(2 * Math.PI) -
                     Math.log(sigma) - Math.pow(Math.log(x) - mu, 2) /
                     (2 * sigma * sigma));
@@ -11511,7 +11846,7 @@ jStat.extend(jStat.normal, {
 jStat.extend(jStat.pareto, {
   pdf: function pdf(x, scale, shape) {
     if (x < scale)
-      return undefined;
+      return 0;
     return (shape * Math.pow(scale, shape)) / Math.pow(x, shape + 1);
   },
 
@@ -11594,7 +11929,7 @@ jStat.extend(jStat.studentt, {
 // extend weibull function with static methods
 jStat.extend(jStat.weibull, {
   pdf: function pdf(x, scale, shape) {
-    if (x < 0)
+    if (x < 0 || scale < 0 || shape < 0)
       return 0;
     return (shape / scale) * Math.pow((x / scale), (shape - 1)) *
         Math.exp(-(Math.pow((x / scale), shape)));
@@ -11618,7 +11953,7 @@ jStat.extend(jStat.weibull, {
 
   mode: function mode(scale, shape) {
     if (shape <= 1)
-      return undefined;
+      return 0;
     return scale * Math.pow((shape - 1) / shape, 1 / shape);
   },
 
@@ -11628,7 +11963,7 @@ jStat.extend(jStat.weibull, {
 
   variance: function variance(scale, shape) {
     return scale * scale * jStat.gammafn(1 + 2 / shape) -
-        Math.pow(this.mean(scale, shape), 2);
+        Math.pow(jStat.weibull.mean(scale, shape), 2);
   }
 });
 
@@ -11704,11 +12039,12 @@ jStat.extend(jStat.binomial, {
 // extend uniform function with static methods
 jStat.extend(jStat.negbin, {
   pdf: function pdf(k, r, p) {
-    return k !== k | 0
-      ? false
-      : k < 0
-        ? 0
-        : jStat.combination(k + r - 1, r - 1) * Math.pow(1 - p, k) * Math.pow(p, r);
+    if (k !== k >>> 0)
+      return false;
+    if (k < 0)
+      return 0;
+    return jStat.combination(k + r - 1, r - 1) *
+        Math.pow(1 - p, k) * Math.pow(p, r);
   },
 
   cdf: function cdf(x, r, p) {
@@ -11911,6 +12247,10 @@ jStat.extend(jStat.hypgeom, {
 // extend uniform function with static methods
 jStat.extend(jStat.poisson, {
   pdf: function pdf(k, l) {
+    if (l < 0 || (k % 1) !== 0 || k < 0) {
+      return 0;
+    }
+
     return Math.pow(l, k) * Math.exp(-l) / jStat.factorial(k);
   },
 
@@ -11973,6 +12313,18 @@ jStat.extend(jStat.triangular, {
       return 1 - Math.pow(b - x, 2) / ((b - a) * (b - c));
   },
 
+  inv: function inv(p, a, b, c) {
+    if (b <= a || c < a || c > b) {
+      return NaN;
+    } else {
+      if (p <= ((c - a) / (b - a))) {
+        return a + (b - a) * Math.sqrt(p * ((c - a) / (b - a)));
+      } else { // p > ((c - a) / (b - a))
+        return a + (b - a) * (1 - Math.sqrt((1 - p) * (1 - ((c - a) / (b - a)))));
+      }
+    }
+  },
+
   mean: function mean(a, b, c) {
     return (a + b + c) / 3;
   },
@@ -12001,6 +12353,46 @@ jStat.extend(jStat.triangular, {
   }
 });
 
+function laplaceSign(x) { return x / Math.abs(x); }
+
+jStat.extend(jStat.laplace, {
+  pdf: function pdf(x, mu, b) {
+    return (b <= 0) ? 0 : (Math.exp(-Math.abs(x - mu) / b)) / (2 * b);
+  },
+
+  cdf: function cdf(x, mu, b) {
+    if (b <= 0) { return 0; }
+
+    if(x < mu) {
+      return 0.5 * Math.exp((x - mu) / b);
+    } else {
+      return 1 - 0.5 * Math.exp(- (x - mu) / b);
+    }
+  },
+
+  mean: function(mu, b) {
+    return mu;
+  },
+
+  median: function(mu, b) {
+    return mu;
+  },
+
+  mode: function(mu, b) {
+    return mu;
+  },
+
+  variance: function(mu, b) {
+    return 2 * b * b;
+  },
+
+  sample: function sample(mu, b) {
+    var u = Math.random() - 0.5;
+
+    return mu - (b * laplaceSign(u) * Math.log(1 - (2 * Math.abs(u))));
+  }
+});
+
 }(this.jStat, Math));
 /* Provides functions for the solution of linear system of equations, integration, extrapolation,
  * interpolation, eigenvalue problems, differential equations and PCA analysis. */
@@ -12010,13 +12402,17 @@ jStat.extend(jStat.triangular, {
 var push = Array.prototype.push;
 var isArray = jStat.utils.isArray;
 
+function isUsable(arg) {
+  return isArray(arg) || arg instanceof jStat;
+}
+
 jStat.extend({
 
   // add a vector/matrix to a vector/matrix or scalar
   add: function add(arr, arg) {
     // check if arg is a vector or scalar
-    if (isArray(arg)) {
-      if (!isArray(arg[0])) arg = [ arg ];
+    if (isUsable(arg)) {
+      if (!isUsable(arg[0])) arg = [ arg ];
       return jStat.map(arr, function(value, row, col) {
         return value + arg[row][col];
       });
@@ -12027,8 +12423,8 @@ jStat.extend({
   // subtract a vector or scalar from the vector
   subtract: function subtract(arr, arg) {
     // check if arg is a vector or scalar
-    if (isArray(arg)) {
-      if (!isArray(arg[0])) arg = [ arg ];
+    if (isUsable(arg)) {
+      if (!isUsable(arg[0])) arg = [ arg ];
       return jStat.map(arr, function(value, row, col) {
         return value - arg[row][col] || 0;
       });
@@ -12038,8 +12434,8 @@ jStat.extend({
 
   // matrix division
   divide: function divide(arr, arg) {
-    if (isArray(arg)) {
-      if (!isArray(arg[0])) arg = [ arg ];
+    if (isUsable(arg)) {
+      if (!isUsable(arg[0])) arg = [ arg ];
       return jStat.multiply(arr, jStat.inv(arg));
     }
     return jStat.map(arr, function(value) { return value / arg; });
@@ -12047,12 +12443,16 @@ jStat.extend({
 
   // matrix multiplication
   multiply: function multiply(arr, arg) {
-    var row, col, nrescols, sum,
+    var row, col, nrescols, sum, nrow, ncol, res, rescols;
+    // eg: arr = 2 arg = 3 -> 6 for res[0][0] statement closure
+    if (arr.length === undefined && arg.length === undefined) {
+      return arr * arg;
+    }
     nrow = arr.length,
     ncol = arr[0].length,
-    res = jStat.zeros(nrow, nrescols = (isArray(arg)) ? arg[0].length : ncol),
+    res = jStat.zeros(nrow, nrescols = (isUsable(arg)) ? arg[0].length : ncol),
     rescols = 0;
-    if (isArray(arg)) {
+    if (isUsable(arg)) {
       for (; rescols < nrescols; rescols++) {
         for (row = 0; row < nrow; row++) {
           sum = 0;
@@ -12066,10 +12466,20 @@ jStat.extend({
     return jStat.map(arr, function(value) { return value * arg; });
   },
 
+  // outer([1,2,3],[4,5,6])
+  // ===
+  // [[1],[2],[3]] times [[4,5,6]]
+  // ->
+  // [[4,5,6],[8,10,12],[12,15,18]]
+  outer:function outer(A, B) {
+    return jStat.multiply(A.map(function(t){ return [t] }), [B]);
+  },
+
+
   // Returns the dot product of two matricies
   dot: function dot(arr, arg) {
-    if (!isArray(arr[0])) arr = [ arr ];
-    if (!isArray(arg[0])) arg = [ arg ];
+    if (!isUsable(arr[0])) arr = [ arr ];
+    if (!isUsable(arg[0])) arg = [ arg ];
     // convert column to row vector
     var left = (arr[0].length === 1 && arr.length !== 1) ? jStat.transpose(arr) : arr,
     right = (arg[0].length === 1 && arg.length !== 1) ? jStat.transpose(arg) : arg,
@@ -12116,7 +12526,7 @@ jStat.extend({
     // check the p-value of the norm, and set for most common case
     if (isNaN(p)) p = 2;
     // check if multi-dimensional array, and make vector correction
-    if (isArray(arr[0])) arr = arr[0];
+    if (isUsable(arr[0])) arr = arr[0];
     // vector norm
     for (; i < arr.length; i++) {
       nnorm += Math.pow(Math.abs(arr[i]), p);
@@ -12133,9 +12543,11 @@ jStat.extend({
   // augment one matrix by another
   // Note: this function returns a matrix, not a jStat object
   aug: function aug(a, b) {
-    var newarr = a.slice(),
-    i = 0;
-    for (; i < newarr.length; i++) {
+    var newarr = [];
+    for (var i = 0; i < a.length; i++) {
+      newarr.push(a[i].slice());
+    }
+    for (var i = 0; i < newarr.length; i++) {
       push.apply(newarr[i], b[i]);
     }
     return newarr;
@@ -12181,7 +12593,7 @@ jStat.extend({
     for (; i < alend; i++) {
       vals[i] = 1;
     }
-    for (i = 0; i < alen; i++) {
+    for (var i = 0; i < alen; i++) {
       for (j = 0; j < alen; j++) {
         vals[(mrow < 0) ? mrow + alen : mrow ] *= a[i][j];
         vals[(mcol < alen) ? mcol + alen : mcol ] *= a[i][j];
@@ -12191,7 +12603,7 @@ jStat.extend({
       mrow = --rowshift - alen + 1;
       mcol = --colshift;
     }
-    for (i = 0; i < alen; i++) {
+    for (var i = 0; i < alen; i++) {
       result += vals[i];
     }
     for (; i < alend; i++) {
@@ -12211,7 +12623,7 @@ jStat.extend({
     maug, pivot, temp, k;
     a = jStat.aug(a, b);
     maug = a[0].length;
-    for(i = 0; i < n; i++) {
+    for(var i = 0; i < n; i++) {
       pivot = a[i][i];
       j = i;
       for (k = i + 1; k < m; k++) {
@@ -12234,7 +12646,7 @@ jStat.extend({
         }
       }
     }
-    for (i = n - 1; i >= 0; i--) {
+    for (var i = n - 1; i >= 0; i--) {
       sum = 0;
       for (j = i + 1; j<= n - 1; j++) {
         sum = sum + x[j] * a[i][j];
@@ -12281,12 +12693,113 @@ jStat.extend({
     return m;
   },
 
-  lu: function lu(a, b) {
-    throw new Error('lu not yet implemented');
+  // solve equation
+  // Ax=b
+  // A is upper triangular matrix
+  // A=[[1,2,3],[0,4,5],[0,6,7]]
+  // b=[1,2,3]
+  // triaUpSolve(A,b) // -> [2.666,0.1666,1.666]
+  // if you use matrix style
+  // A=[[1,2,3],[0,4,5],[0,6,7]]
+  // b=[[1],[2],[3]]
+  // will return [[2.666],[0.1666],[1.666]]
+  triaUpSolve: function triaUpSolve(A, b) {
+    var size = A[0].length;
+    var x = jStat.zeros(1, size)[0];
+    var parts;
+    var matrix_mode = false;
+
+    if (b[0].length != undefined) {
+      b = b.map(function(i){ return i[0] });
+      matrix_mode = true;
+    }
+
+    jStat.arange(size - 1, -1, -1).forEach(function(i) {
+      parts = jStat.arange(i + 1,size).map(function(j) {
+        return x[j] * A[i][j];
+      });
+      x[i] = (b[i] - jStat.sum(parts)) / A[i][i];
+    });
+
+    if (matrix_mode)
+      return x.map(function(i){ return [i] });
+    return x;
   },
 
-  cholesky: function cholesky(a, b) {
-    throw new Error('cholesky not yet implemented');
+  triaLowSolve: function triaLowSolve(A, b) {
+    // like to triaUpSolve but A is lower triangular matrix
+    var size = A[0].length;
+    var x = jStat.zeros(1, size)[0];
+    var parts;
+
+    var matrix_mode=false;
+    if (b[0].length != undefined) {
+      b = b.map(function(i){ return i[0] });
+      matrix_mode = true;
+    }
+
+    jStat.arange(size).forEach(function(i) {
+      parts = jStat.arange(i).map(function(j) {
+        return A[i][j] * x[j];
+      });
+      x[i] = (b[i] - jStat.sum(parts)) / A[i][i];
+    })
+
+    if (matrix_mode)
+      return x.map(function(i){ return [i] });
+    return x;
+  },
+
+  // A -> [L,U]
+  // A=LU
+  // L is lower triangular matrix
+  // U is upper triangular matrix
+  lu: function lu(A) {
+    var size = A.length;
+    //var L=jStat.diagonal(jStat.ones(1,size)[0]);
+    var L = jStat.identity(size);
+    var R = jStat.zeros(A.length, A[0].length);
+    var parts;
+    jStat.arange(size).forEach(function(t) {
+      R[0][t] = A[0][t];
+    });
+    jStat.arange(1, size).forEach(function(l) {
+      jStat.arange(l).forEach(function(i) {
+        parts = jStat.arange(i).map(function(jj) {
+          return L[l][jj] * R[jj][i];
+        });
+        L[l][i] = (A[l][i] - jStat.sum(parts)) / R[i][i];
+      });
+      jStat.arange(l, size).forEach(function(j) {
+        parts = jStat.arange(l).map(function(jj) {
+          return L[l][jj] * R[jj][j];
+        });
+        R[l][j] = A[i][j] - jStat.sum(parts);
+      });
+    });
+    return [L, R];
+  },
+
+  // A -> T
+  // A=TT'
+  // T is lower triangular matrix
+  cholesky: function cholesky(A) {
+    var size = A.length;
+    var T = jStat.zeros(A.length, A[0].length);
+    var parts;
+    jStat.arange(size).forEach(function(i) {
+      parts = jStat.arange(i).map(function(t) {
+        return Math.pow(T[i][t],2);
+      });
+      T[i][i] = Math.sqrt(A[i][i] - jStat.sum(parts));
+      jStat.arange(i + 1, size).forEach(function(j) {
+        parts = jStat.arange(i).map(function(t) {
+          return T[i][t] * T[j][t];
+        });
+        T[j][i] = (A[i][j] - jStat.sum(parts)) / T[i][i];
+      });
+    });
+    return T;
   },
 
   gauss_jacobi: function gauss_jacobi(a, b, x, r) {
@@ -12428,39 +12941,94 @@ jStat.extend({
     return a;
   },
 
-  // TODO: not working properly.
-  QR: function QR(a, b) {
-    var m = a.length;
-    var n = a[0].length;
-    var i = 0;
-    var w = [];
-    var p = [];
-    var x = [];
-    var j, alpha, r, k, factor, sum;
-    for (; i < m - 1; i++) {
-      alpha = 0;
-      for (j = i + 1; j < n; j++)
-        alpha += (a[j][i] * a[j][i]);
-      factor = (a[i + 1][i] > 0) ? -1 : 1;
-      alpha = factor * Math.sqrt(alpha);
-      r = Math.sqrt((((alpha * alpha) - a[i + 1][i] * alpha) / 2));
-      w = jStat.zeros(m, 1);
-      w[i + 1][0] = (a[i + 1][i] - alpha) / (2 * r);
-      for (k = i + 2; k < m; k++)
-        w[k][0] = a[k][i] / (2 * r);
-      p = jStat.subtract(jStat.identity(m, n),
-          jStat.multiply(jStat.multiply(w, jStat.transpose(w)), 2));
-      a = jStat.multiply(p, a);
-      b = jStat.multiply(p, b);
+  // A -> [Q,R]
+  // Q is orthogonal matrix
+  // R is upper triangular
+  QR: (function() {
+    // x -> Q
+    // find a orthogonal matrix Q st.
+    // Qx=y
+    // y is [||x||,0,0,...]
+    function get_Q1(x) {
+      var size = x.length;
+      var norm_x = jStat.norm(x,2);
+      var e1 = jStat.zeros(1, size)[0];
+      e1[0] = 1;
+      var u = jStat.add(jStat.multiply(jStat.multiply(e1, norm_x), -1), x);
+      var norm_u = jStat.norm(u, 2);
+      var v = jStat.divide(u, norm_u);
+      var Q = jStat.subtract(jStat.identity(size),
+                             jStat.multiply(jStat.outer(v, v), 2));
+      return Q;
     }
-    for (i = m - 1; i >= 0; i--) {
-      sum = 0;
-      for (j = i + 1; j <= n - 1; j++)
-      sum = x[j] * a[i][j];
-      x[i] = b[i][0] / a[i][i];
+
+    function qr(A) {
+      var size = A[0].length;
+      var QList = [];
+      jStat.arange(size).forEach(function(i) {
+        var x = jStat.slice(A, { row: { start: i }, col: i });
+        var Q = get_Q1(x);
+        var Qn = jStat.identity(A.length);
+        Qn = jStat.sliceAssign(Qn, { row: { start: i }, col: { start: i }}, Q);
+        A = jStat.multiply(Qn, A);
+        QList.push(Qn);
+      });
+      var Q = QList.reduce(function(x, y){ return jStat.multiply(x,y) });
+      var R = A;
+      return [Q, R];
     }
-    return x;
-  },
+
+    return qr;
+  })(),
+
+  lstsq: (function(A, b) {
+    // solve least squard problem for Ax=b as QR decomposition way if b is
+    // [[b1],[b2],[b3]] form will return [[x1],[x2],[x3]] array form solution
+    // else b is [b1,b2,b3] form will return [x1,x2,x3] array form solution
+    function R_I(A) {
+      A = jStat.copy(A);
+      var size = A.length;
+      var I = jStat.identity(size);
+      jStat.arange(size - 1, -1, -1).forEach(function(i) {
+        jStat.sliceAssign(
+            I, { row: i }, jStat.divide(jStat.slice(I, { row: i }), A[i][i]));
+        jStat.sliceAssign(
+            A, { row: i }, jStat.divide(jStat.slice(A, { row: i }), A[i][i]));
+        jStat.arange(i).forEach(function(j) {
+          var c = jStat.multiply(A[j][i], -1);
+          var Aj = jStat.slice(A, { row: j });
+          var cAi = jStat.multiply(jStat.slice(A, { row: i }), c);
+          jStat.sliceAssign(A, { row: j }, jStat.add(Aj, cAi));
+          var Ij = jStat.slice(I, { row: j });
+          var cIi = jStat.multiply(jStat.slice(I, { row: i }), c);
+          jStat.sliceAssign(I, { row: j }, jStat.add(Ij, cIi));
+        })
+      });
+      return I;
+    }
+
+    function qr_solve(A, b){
+      var array_mode = false;
+      if (b[0].length === undefined) {
+        // [c1,c2,c3] mode
+        b = b.map(function(x){ return [x] });
+        array_mode = true;
+      }
+      var QR = jStat.QR(A);
+      var Q = QR[0];
+      var R = QR[1];
+      var attrs = A[0].length;
+      var Q1 = jStat.slice(Q,{col:{end:attrs}});
+      var R1 = jStat.slice(R,{row:{end:attrs}});
+      var RI = R_I(R1);
+      var x = jStat.multiply(jStat.multiply(RI, jStat.transpose(Q1)), b);
+      if (array_mode)
+        return x.map(function(i){ return i[0] });
+      return x;
+    }
+
+    return qr_solve;
+  })(),
 
   jacobi: function jacobi(a) {
     var condition = 1;
@@ -12475,7 +13043,7 @@ jStat.extend({
       maxim = a[0][1];
       p = 0;
       q = 1;
-      for (i = 0; i < n; i++) {
+      for (var i = 0; i < n; i++) {
         for (j = 0; j < n; j++) {
           if (i != j) {
             if (maxim < Math.abs(a[i][j])) {
@@ -12500,7 +13068,7 @@ jStat.extend({
       b = jStat.multiply(jStat.multiply(jStat.inv(s), a), s);
       a = b;
       condition = 0;
-      for (i = 1; i < n; i++) {
+      for (var i = 1; i < n; i++) {
         for (j = 1; j < n; j++) {
           if (i != j && Math.abs(a[i][j]) > 0.001) {
             condition = 1;
@@ -12508,7 +13076,7 @@ jStat.extend({
         }
       }
     }
-    for (i = 0; i < n; i++) ev.push(a[i][i]);
+    for (var i = 0; i < n; i++) ev.push(a[i][i]);
     //returns both the eigenvalue and eigenmatrix
     return [e, ev];
   },
@@ -12677,11 +13245,11 @@ jStat.extend({
     for (; i < n - 1; i++)
       h[i] = X[i + 1] - X[i];
     alpha[0] = 0;
-    for (i = 1; i < n - 1; i++) {
+    for (var i = 1; i < n - 1; i++) {
       alpha[i] = (3 / h[i]) * (F[i + 1] - F[i]) -
           (3 / h[i-1]) * (F[i] - F[i-1]);
     }
-    for (i = 1; i < n - 1; i++) {
+    for (var i = 1; i < n - 1; i++) {
       A[i] = [];
       B[i] = [];
       A[i][i-1] = h[i-1];
@@ -12722,17 +13290,17 @@ jStat.extend({
     var C = [];
     var V = [];
     var Vt = [];
-    for (i = 0; i < m; i++) {
+    for (var i = 0; i < m; i++) {
       u[i] = jStat.sum(X[i]) / n;
     }
-    for (i = 0; i < n; i++) {
+    for (var i = 0; i < n; i++) {
       B[i] = [];
       for(j = 0; j < m; j++) {
         B[i][j] = X[j][i] - u[j];
       }
     }
     B = jStat.transpose(B);
-    for (i = 0; i < m; i++) {
+    for (var i = 0; i < m; i++) {
       C[i] = [];
       for (j = 0; j < m; j++) {
         C[i][j] = (jStat.dot([B[i]], [B[j]])) / (n - 1);
@@ -12742,7 +13310,7 @@ jStat.extend({
     V = result[0];
     D = result[1];
     Vt = jStat.transpose(V);
-    for (i = 0; i < D.length; i++) {
+    for (var i = 0; i < D.length; i++) {
       for (j = i; j < D.length; j++) {
         if(D[i] < D[j])  {
           temp1 = D[i];
@@ -12755,7 +13323,7 @@ jStat.extend({
       }
     }
     Bt = jStat.transpose(B);
-    for (i = 0; i < m; i++) {
+    for (var i = 0; i < m; i++) {
       Y[i] = [];
       for (j = 0; j < Bt.length; j++) {
         Y[i][j] = jStat.dot([Vt[i]], [Bt[j]]);
@@ -12912,7 +13480,7 @@ jStat.extend({
     expVar, sample, sampMean, sampSampMean, tmpargs, unexpVar, i, j;
     if (args.length === 1) {
       tmpargs = new Array(args[0].length);
-      for (i = 0; i < args[0].length; i++) {
+      for (var i = 0; i < args[0].length; i++) {
         tmpargs[i] = args[0][i];
       }
       args = tmpargs;
@@ -12923,19 +13491,19 @@ jStat.extend({
     }
     // Builds sample array
     sample = new Array();
-    for (i = 0; i < args.length; i++) {
+    for (var i = 0; i < args.length; i++) {
       sample = sample.concat(args[i]);
     }
     sampMean = jStat.mean(sample);
     // Computes the explained variance
     expVar = 0;
-    for (i = 0; i < args.length; i++) {
+    for (var i = 0; i < args.length; i++) {
       expVar = expVar + args[i].length * Math.pow(jStat.mean(args[i]) - sampMean, 2);
     }
     expVar /= (args.length - 1);
     // Computes unexplained variance
     unexpVar = 0;
-    for (i = 0; i < args.length; i++) {
+    for (var i = 0; i < args.length; i++) {
       sampSampMean = jStat.mean(args[i]);
       for (j = 0; j < args[i].length; j++) {
         unexpVar += Math.pow(args[i][j] - sampSampMean, 2);
@@ -12957,7 +13525,7 @@ jStat.extend({
     anovafscore = jStat.anovafscore(args);
     df1 = args.length - 1;
     n = 0;
-    for (i = 0; i < args.length; i++) {
+    for (var i = 0; i < args.length; i++) {
       n = n + args[i].length;
     }
     df2 = n - df1 - 1;
@@ -12977,7 +13545,7 @@ jStat.extend(jStat.fn, {
   anovaftes: function anovaftes() {
     var n = 0;
     var i;
-    for (i = 0; i < this.length; i++) {
+    for (var i = 0; i < this.length; i++) {
       n = n + this[i].length;
     }
     return jStat.ftest(this.anovafscore(), this.length - 1, n - this.length);
@@ -13040,7 +13608,7 @@ jStat.extend(jStat.fn, {
 });
 
 // internal method for calculating the z-score for a difference of proportions test
-differenceOfProportions: function differenceOfProportions(p1, n1, p2, n2) {
+function differenceOfProportions(p1, n1, p2, n2) {
   if (p1 > 1 || p2 > 1 || p1 <= 0 || p2 <= 0) {
     throw new Error("Proportions should be greater than 0 and less than 1")
   }
@@ -13063,8 +13631,2210 @@ jStat.extend(jStat.fn, {
 });
 
 }(this.jStat, Math));
+this.jStat.models=(function(){
+
+  function sub_regress(endog, exog) {
+    return ols(endog, exog);
+  }
+
+  function sub_regress(exog) {
+    var var_count = exog[0].length;
+    var modelList = jStat.arange(var_count).map(function(endog_index) {
+      var exog_index =
+          jStat.arange(var_count).filter(function(i){return i!==endog_index});
+      return ols(jStat.col(exog, endog_index).map(function(x){ return x[0] }),
+                 jStat.col(exog, exog_index))
+    });
+    return modelList;
+  }
+
+  // do OLS model regress
+  // exog have include const columns ,it will not generate it .In fact, exog is
+  // "design matrix" look at
+  //https://en.wikipedia.org/wiki/Design_matrix
+  function ols(endog, exog) {
+    var nobs = endog.length;
+    var df_model = exog[0].length - 1;
+    var df_resid = nobs-df_model - 1;
+    var coef = jStat.lstsq(exog, endog);
+    var predict =
+        jStat.multiply(exog, coef.map(function(x) { return [x] }))
+            .map(function(p) { return p[0] });
+    var resid = jStat.subtract(endog, predict);
+    var ybar = jStat.mean(endog);
+    // constant cause problem
+    // var SST = jStat.sum(endog.map(function(y) {
+    //   return Math.pow(y-ybar,2);
+    // }));
+    var SSE = jStat.sum(predict.map(function(f) {
+      return Math.pow(f - ybar, 2);
+    }));
+    var SSR = jStat.sum(endog.map(function(y, i) {
+      return Math.pow(y - predict[i], 2);
+    }));
+    var SST = SSE + SSR;
+    var R2 = (SSE / SST);
+    return {
+        exog:exog,
+        endog:endog,
+        nobs:nobs,
+        df_model:df_model,
+        df_resid:df_resid,
+        coef:coef,
+        predict:predict,
+        resid:resid,
+        ybar:ybar,
+        SST:SST,
+        SSE:SSE,
+        SSR:SSR,
+        R2:R2
+    };
+  }
+
+  // H0: b_I=0
+  // H1: b_I!=0
+  function t_test(model) {
+    var subModelList = sub_regress(model.exog);
+    //var sigmaHat=jStat.stdev(model.resid);
+    var sigmaHat = Math.sqrt(model.SSR / (model.df_resid));
+    var seBetaHat = subModelList.map(function(mod) {
+      var SST = mod.SST;
+      var R2 = mod.R2;
+      return sigmaHat / Math.sqrt(SST * (1 - R2));
+    });
+    var tStatistic = model.coef.map(function(coef, i) {
+      return (coef - 0) / seBetaHat[i];
+    });
+    var pValue = tStatistic.map(function(t) {
+      var leftppf = jStat.studentt.cdf(t, model.df_resid);
+      return (leftppf > 0.5 ? 1 - leftppf : leftppf) * 2;
+    });
+    var c = jStat.studentt.inv(0.975, model.df_resid);
+    var interval95 = model.coef.map(function(coef, i) {
+      var d = c * seBetaHat[i];
+      return [coef - d, coef + d];
+    })
+    return {
+        se: seBetaHat,
+        t: tStatistic,
+        p: pValue,
+        sigmaHat: sigmaHat,
+        interval95: interval95
+    };
+  }
+
+  function F_test(model) {
+    var F_statistic =
+        (model.R2 / model.df_model) / ((1 - model.R2) / model.df_resid);
+    var fcdf = function(x, n1, n2) {
+      return jStat.beta.cdf(x / (n2 / n1 + x), n1 / 2, n2 / 2)
+    }
+    var pvalue = 1 - fcdf(F_statistic, model.df_model, model.df_resid);
+    return { F_statistic: F_statistic, pvalue: pvalue };
+  }
+
+  function ols_wrap(endog, exog) {
+    var model = ols(endog,exog);
+    var ttest = t_test(model);
+    var ftest = F_test(model);
+    var adjust_R2 =
+        1 - (1 - model.rsquared) * ((model.nobs - 1) / (model.df_resid));
+    model.t = ttest;
+    model.f = ftest;
+    model.adjust_R2 = adjust_R2;
+    return model;
+  }
+
+  return { ols: ols_wrap };
+})();
 
 },{}],4:[function(require,module,exports){
+/**
+ * lodash 3.3.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var baseIsEqual = require('lodash._baseisequal'),
+    bindCallback = require('lodash._bindcallback'),
+    isArray = require('lodash.isarray'),
+    pairs = require('lodash.pairs');
+
+/** Used to match property names within property paths. */
+var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\n\\]|\\.)*?\1)\]/,
+    reIsPlainProp = /^\w*$/,
+    rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\n\\]|\\.)*?)\2)\]/g;
+
+/** Used to match backslashes in property paths. */
+var reEscapeChar = /\\(\\)?/g;
+
+/**
+ * Converts `value` to a string if it's not one. An empty string is returned
+ * for `null` or `undefined` values.
+ *
+ * @private
+ * @param {*} value The value to process.
+ * @returns {string} Returns the string.
+ */
+function baseToString(value) {
+  return value == null ? '' : (value + '');
+}
+
+/**
+ * The base implementation of `_.callback` which supports specifying the
+ * number of arguments to provide to `func`.
+ *
+ * @private
+ * @param {*} [func=_.identity] The value to convert to a callback.
+ * @param {*} [thisArg] The `this` binding of `func`.
+ * @param {number} [argCount] The number of arguments to provide to `func`.
+ * @returns {Function} Returns the callback.
+ */
+function baseCallback(func, thisArg, argCount) {
+  var type = typeof func;
+  if (type == 'function') {
+    return thisArg === undefined
+      ? func
+      : bindCallback(func, thisArg, argCount);
+  }
+  if (func == null) {
+    return identity;
+  }
+  if (type == 'object') {
+    return baseMatches(func);
+  }
+  return thisArg === undefined
+    ? property(func)
+    : baseMatchesProperty(func, thisArg);
+}
+
+/**
+ * The base implementation of `get` without support for string paths
+ * and default values.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @param {Array} path The path of the property to get.
+ * @param {string} [pathKey] The key representation of path.
+ * @returns {*} Returns the resolved value.
+ */
+function baseGet(object, path, pathKey) {
+  if (object == null) {
+    return;
+  }
+  if (pathKey !== undefined && pathKey in toObject(object)) {
+    path = [pathKey];
+  }
+  var index = 0,
+      length = path.length;
+
+  while (object != null && index < length) {
+    object = object[path[index++]];
+  }
+  return (index && index == length) ? object : undefined;
+}
+
+/**
+ * The base implementation of `_.isMatch` without support for callback
+ * shorthands and `this` binding.
+ *
+ * @private
+ * @param {Object} object The object to inspect.
+ * @param {Array} matchData The propery names, values, and compare flags to match.
+ * @param {Function} [customizer] The function to customize comparing objects.
+ * @returns {boolean} Returns `true` if `object` is a match, else `false`.
+ */
+function baseIsMatch(object, matchData, customizer) {
+  var index = matchData.length,
+      length = index,
+      noCustomizer = !customizer;
+
+  if (object == null) {
+    return !length;
+  }
+  object = toObject(object);
+  while (index--) {
+    var data = matchData[index];
+    if ((noCustomizer && data[2])
+          ? data[1] !== object[data[0]]
+          : !(data[0] in object)
+        ) {
+      return false;
+    }
+  }
+  while (++index < length) {
+    data = matchData[index];
+    var key = data[0],
+        objValue = object[key],
+        srcValue = data[1];
+
+    if (noCustomizer && data[2]) {
+      if (objValue === undefined && !(key in object)) {
+        return false;
+      }
+    } else {
+      var result = customizer ? customizer(objValue, srcValue, key) : undefined;
+      if (!(result === undefined ? baseIsEqual(srcValue, objValue, customizer, true) : result)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * The base implementation of `_.matches` which does not clone `source`.
+ *
+ * @private
+ * @param {Object} source The object of property values to match.
+ * @returns {Function} Returns the new function.
+ */
+function baseMatches(source) {
+  var matchData = getMatchData(source);
+  if (matchData.length == 1 && matchData[0][2]) {
+    var key = matchData[0][0],
+        value = matchData[0][1];
+
+    return function(object) {
+      if (object == null) {
+        return false;
+      }
+      return object[key] === value && (value !== undefined || (key in toObject(object)));
+    };
+  }
+  return function(object) {
+    return baseIsMatch(object, matchData);
+  };
+}
+
+/**
+ * The base implementation of `_.matchesProperty` which does not clone `srcValue`.
+ *
+ * @private
+ * @param {string} path The path of the property to get.
+ * @param {*} srcValue The value to compare.
+ * @returns {Function} Returns the new function.
+ */
+function baseMatchesProperty(path, srcValue) {
+  var isArr = isArray(path),
+      isCommon = isKey(path) && isStrictComparable(srcValue),
+      pathKey = (path + '');
+
+  path = toPath(path);
+  return function(object) {
+    if (object == null) {
+      return false;
+    }
+    var key = pathKey;
+    object = toObject(object);
+    if ((isArr || !isCommon) && !(key in object)) {
+      object = path.length == 1 ? object : baseGet(object, baseSlice(path, 0, -1));
+      if (object == null) {
+        return false;
+      }
+      key = last(path);
+      object = toObject(object);
+    }
+    return object[key] === srcValue
+      ? (srcValue !== undefined || (key in object))
+      : baseIsEqual(srcValue, object[key], undefined, true);
+  };
+}
+
+/**
+ * The base implementation of `_.property` without support for deep paths.
+ *
+ * @private
+ * @param {string} key The key of the property to get.
+ * @returns {Function} Returns the new function.
+ */
+function baseProperty(key) {
+  return function(object) {
+    return object == null ? undefined : object[key];
+  };
+}
+
+/**
+ * A specialized version of `baseProperty` which supports deep paths.
+ *
+ * @private
+ * @param {Array|string} path The path of the property to get.
+ * @returns {Function} Returns the new function.
+ */
+function basePropertyDeep(path) {
+  var pathKey = (path + '');
+  path = toPath(path);
+  return function(object) {
+    return baseGet(object, path, pathKey);
+  };
+}
+
+/**
+ * The base implementation of `_.slice` without an iteratee call guard.
+ *
+ * @private
+ * @param {Array} array The array to slice.
+ * @param {number} [start=0] The start position.
+ * @param {number} [end=array.length] The end position.
+ * @returns {Array} Returns the slice of `array`.
+ */
+function baseSlice(array, start, end) {
+  var index = -1,
+      length = array.length;
+
+  start = start == null ? 0 : (+start || 0);
+  if (start < 0) {
+    start = -start > length ? 0 : (length + start);
+  }
+  end = (end === undefined || end > length) ? length : (+end || 0);
+  if (end < 0) {
+    end += length;
+  }
+  length = start > end ? 0 : ((end - start) >>> 0);
+  start >>>= 0;
+
+  var result = Array(length);
+  while (++index < length) {
+    result[index] = array[index + start];
+  }
+  return result;
+}
+
+/**
+ * Gets the propery names, values, and compare flags of `object`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the match data of `object`.
+ */
+function getMatchData(object) {
+  var result = pairs(object),
+      length = result.length;
+
+  while (length--) {
+    result[length][2] = isStrictComparable(result[length][1]);
+  }
+  return result;
+}
+
+/**
+ * Checks if `value` is a property name and not a property path.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @param {Object} [object] The object to query keys on.
+ * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
+ */
+function isKey(value, object) {
+  var type = typeof value;
+  if ((type == 'string' && reIsPlainProp.test(value)) || type == 'number') {
+    return true;
+  }
+  if (isArray(value)) {
+    return false;
+  }
+  var result = !reIsDeepProp.test(value);
+  return result || (object != null && value in toObject(object));
+}
+
+/**
+ * Checks if `value` is suitable for strict equality comparisons, i.e. `===`.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` if suitable for strict
+ *  equality comparisons, else `false`.
+ */
+function isStrictComparable(value) {
+  return value === value && !isObject(value);
+}
+
+/**
+ * Converts `value` to an object if it's not one.
+ *
+ * @private
+ * @param {*} value The value to process.
+ * @returns {Object} Returns the object.
+ */
+function toObject(value) {
+  return isObject(value) ? value : Object(value);
+}
+
+/**
+ * Converts `value` to property path array if it's not one.
+ *
+ * @private
+ * @param {*} value The value to process.
+ * @returns {Array} Returns the property path array.
+ */
+function toPath(value) {
+  if (isArray(value)) {
+    return value;
+  }
+  var result = [];
+  baseToString(value).replace(rePropName, function(match, number, quote, string) {
+    result.push(quote ? string.replace(reEscapeChar, '$1') : (number || match));
+  });
+  return result;
+}
+
+/**
+ * Gets the last element of `array`.
+ *
+ * @static
+ * @memberOf _
+ * @category Array
+ * @param {Array} array The array to query.
+ * @returns {*} Returns the last element of `array`.
+ * @example
+ *
+ * _.last([1, 2, 3]);
+ * // => 3
+ */
+function last(array) {
+  var length = array ? array.length : 0;
+  return length ? array[length - 1] : undefined;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * This method returns the first argument provided to it.
+ *
+ * @static
+ * @memberOf _
+ * @category Utility
+ * @param {*} value Any value.
+ * @returns {*} Returns `value`.
+ * @example
+ *
+ * var object = { 'user': 'fred' };
+ *
+ * _.identity(object) === object;
+ * // => true
+ */
+function identity(value) {
+  return value;
+}
+
+/**
+ * Creates a function that returns the property value at `path` on a
+ * given object.
+ *
+ * @static
+ * @memberOf _
+ * @category Utility
+ * @param {Array|string} path The path of the property to get.
+ * @returns {Function} Returns the new function.
+ * @example
+ *
+ * var objects = [
+ *   { 'a': { 'b': { 'c': 2 } } },
+ *   { 'a': { 'b': { 'c': 1 } } }
+ * ];
+ *
+ * _.map(objects, _.property('a.b.c'));
+ * // => [2, 1]
+ *
+ * _.pluck(_.sortBy(objects, _.property(['a', 'b', 'c'])), 'a.b.c');
+ * // => [1, 2]
+ */
+function property(path) {
+  return isKey(path) ? baseProperty(path) : basePropertyDeep(path);
+}
+
+module.exports = baseCallback;
+
+},{"lodash._baseisequal":5,"lodash._bindcallback":9,"lodash.isarray":12,"lodash.pairs":14}],5:[function(require,module,exports){
+/**
+ * lodash 3.0.7 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var isArray = require('lodash.isarray'),
+    isTypedArray = require('lodash.istypedarray'),
+    keys = require('lodash.keys');
+
+/** `Object#toString` result references. */
+var argsTag = '[object Arguments]',
+    arrayTag = '[object Array]',
+    boolTag = '[object Boolean]',
+    dateTag = '[object Date]',
+    errorTag = '[object Error]',
+    numberTag = '[object Number]',
+    objectTag = '[object Object]',
+    regexpTag = '[object RegExp]',
+    stringTag = '[object String]';
+
+/**
+ * Checks if `value` is object-like.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
+ * of values.
+ */
+var objToString = objectProto.toString;
+
+/**
+ * A specialized version of `_.some` for arrays without support for callback
+ * shorthands and `this` binding.
+ *
+ * @private
+ * @param {Array} array The array to iterate over.
+ * @param {Function} predicate The function invoked per iteration.
+ * @returns {boolean} Returns `true` if any element passes the predicate check,
+ *  else `false`.
+ */
+function arraySome(array, predicate) {
+  var index = -1,
+      length = array.length;
+
+  while (++index < length) {
+    if (predicate(array[index], index, array)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * The base implementation of `_.isEqual` without support for `this` binding
+ * `customizer` functions.
+ *
+ * @private
+ * @param {*} value The value to compare.
+ * @param {*} other The other value to compare.
+ * @param {Function} [customizer] The function to customize comparing values.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
+ * @param {Array} [stackA] Tracks traversed `value` objects.
+ * @param {Array} [stackB] Tracks traversed `other` objects.
+ * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+ */
+function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
+  if (value === other) {
+    return true;
+  }
+  if (value == null || other == null || (!isObject(value) && !isObjectLike(other))) {
+    return value !== value && other !== other;
+  }
+  return baseIsEqualDeep(value, other, baseIsEqual, customizer, isLoose, stackA, stackB);
+}
+
+/**
+ * A specialized version of `baseIsEqual` for arrays and objects which performs
+ * deep comparisons and tracks traversed objects enabling objects with circular
+ * references to be compared.
+ *
+ * @private
+ * @param {Object} object The object to compare.
+ * @param {Object} other The other object to compare.
+ * @param {Function} equalFunc The function to determine equivalents of values.
+ * @param {Function} [customizer] The function to customize comparing objects.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
+ * @param {Array} [stackA=[]] Tracks traversed `value` objects.
+ * @param {Array} [stackB=[]] Tracks traversed `other` objects.
+ * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+ */
+function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
+  var objIsArr = isArray(object),
+      othIsArr = isArray(other),
+      objTag = arrayTag,
+      othTag = arrayTag;
+
+  if (!objIsArr) {
+    objTag = objToString.call(object);
+    if (objTag == argsTag) {
+      objTag = objectTag;
+    } else if (objTag != objectTag) {
+      objIsArr = isTypedArray(object);
+    }
+  }
+  if (!othIsArr) {
+    othTag = objToString.call(other);
+    if (othTag == argsTag) {
+      othTag = objectTag;
+    } else if (othTag != objectTag) {
+      othIsArr = isTypedArray(other);
+    }
+  }
+  var objIsObj = objTag == objectTag,
+      othIsObj = othTag == objectTag,
+      isSameTag = objTag == othTag;
+
+  if (isSameTag && !(objIsArr || objIsObj)) {
+    return equalByTag(object, other, objTag);
+  }
+  if (!isLoose) {
+    var objIsWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
+        othIsWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
+
+    if (objIsWrapped || othIsWrapped) {
+      return equalFunc(objIsWrapped ? object.value() : object, othIsWrapped ? other.value() : other, customizer, isLoose, stackA, stackB);
+    }
+  }
+  if (!isSameTag) {
+    return false;
+  }
+  // Assume cyclic values are equal.
+  // For more information on detecting circular references see https://es5.github.io/#JO.
+  stackA || (stackA = []);
+  stackB || (stackB = []);
+
+  var length = stackA.length;
+  while (length--) {
+    if (stackA[length] == object) {
+      return stackB[length] == other;
+    }
+  }
+  // Add `object` and `other` to the stack of traversed objects.
+  stackA.push(object);
+  stackB.push(other);
+
+  var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isLoose, stackA, stackB);
+
+  stackA.pop();
+  stackB.pop();
+
+  return result;
+}
+
+/**
+ * A specialized version of `baseIsEqualDeep` for arrays with support for
+ * partial deep comparisons.
+ *
+ * @private
+ * @param {Array} array The array to compare.
+ * @param {Array} other The other array to compare.
+ * @param {Function} equalFunc The function to determine equivalents of values.
+ * @param {Function} [customizer] The function to customize comparing arrays.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
+ * @param {Array} [stackA] Tracks traversed `value` objects.
+ * @param {Array} [stackB] Tracks traversed `other` objects.
+ * @returns {boolean} Returns `true` if the arrays are equivalent, else `false`.
+ */
+function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
+  var index = -1,
+      arrLength = array.length,
+      othLength = other.length;
+
+  if (arrLength != othLength && !(isLoose && othLength > arrLength)) {
+    return false;
+  }
+  // Ignore non-index properties.
+  while (++index < arrLength) {
+    var arrValue = array[index],
+        othValue = other[index],
+        result = customizer ? customizer(isLoose ? othValue : arrValue, isLoose ? arrValue : othValue, index) : undefined;
+
+    if (result !== undefined) {
+      if (result) {
+        continue;
+      }
+      return false;
+    }
+    // Recursively compare arrays (susceptible to call stack limits).
+    if (isLoose) {
+      if (!arraySome(other, function(othValue) {
+            return arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
+          })) {
+        return false;
+      }
+    } else if (!(arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * A specialized version of `baseIsEqualDeep` for comparing objects of
+ * the same `toStringTag`.
+ *
+ * **Note:** This function only supports comparing values with tags of
+ * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
+ *
+ * @private
+ * @param {Object} value The object to compare.
+ * @param {Object} other The other object to compare.
+ * @param {string} tag The `toStringTag` of the objects to compare.
+ * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+ */
+function equalByTag(object, other, tag) {
+  switch (tag) {
+    case boolTag:
+    case dateTag:
+      // Coerce dates and booleans to numbers, dates to milliseconds and booleans
+      // to `1` or `0` treating invalid dates coerced to `NaN` as not equal.
+      return +object == +other;
+
+    case errorTag:
+      return object.name == other.name && object.message == other.message;
+
+    case numberTag:
+      // Treat `NaN` vs. `NaN` as equal.
+      return (object != +object)
+        ? other != +other
+        : object == +other;
+
+    case regexpTag:
+    case stringTag:
+      // Coerce regexes to strings and treat strings primitives and string
+      // objects as equal. See https://es5.github.io/#x15.10.6.4 for more details.
+      return object == (other + '');
+  }
+  return false;
+}
+
+/**
+ * A specialized version of `baseIsEqualDeep` for objects with support for
+ * partial deep comparisons.
+ *
+ * @private
+ * @param {Object} object The object to compare.
+ * @param {Object} other The other object to compare.
+ * @param {Function} equalFunc The function to determine equivalents of values.
+ * @param {Function} [customizer] The function to customize comparing values.
+ * @param {boolean} [isLoose] Specify performing partial comparisons.
+ * @param {Array} [stackA] Tracks traversed `value` objects.
+ * @param {Array} [stackB] Tracks traversed `other` objects.
+ * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
+ */
+function equalObjects(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
+  var objProps = keys(object),
+      objLength = objProps.length,
+      othProps = keys(other),
+      othLength = othProps.length;
+
+  if (objLength != othLength && !isLoose) {
+    return false;
+  }
+  var index = objLength;
+  while (index--) {
+    var key = objProps[index];
+    if (!(isLoose ? key in other : hasOwnProperty.call(other, key))) {
+      return false;
+    }
+  }
+  var skipCtor = isLoose;
+  while (++index < objLength) {
+    key = objProps[index];
+    var objValue = object[key],
+        othValue = other[key],
+        result = customizer ? customizer(isLoose ? othValue : objValue, isLoose? objValue : othValue, key) : undefined;
+
+    // Recursively compare objects (susceptible to call stack limits).
+    if (!(result === undefined ? equalFunc(objValue, othValue, customizer, isLoose, stackA, stackB) : result)) {
+      return false;
+    }
+    skipCtor || (skipCtor = key == 'constructor');
+  }
+  if (!skipCtor) {
+    var objCtor = object.constructor,
+        othCtor = other.constructor;
+
+    // Non `Object` object instances with different constructors are not equal.
+    if (objCtor != othCtor &&
+        ('constructor' in object && 'constructor' in other) &&
+        !(typeof objCtor == 'function' && objCtor instanceof objCtor &&
+          typeof othCtor == 'function' && othCtor instanceof othCtor)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+module.exports = baseIsEqual;
+
+},{"lodash.isarray":12,"lodash.istypedarray":13,"lodash.keys":6}],6:[function(require,module,exports){
+/**
+ * lodash 3.1.2 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var getNative = require('lodash._getnative'),
+    isArguments = require('lodash.isarguments'),
+    isArray = require('lodash.isarray');
+
+/** Used to detect unsigned integer values. */
+var reIsUint = /^\d+$/;
+
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeKeys = getNative(Object, 'keys');
+
+/**
+ * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
+ * of an array-like value.
+ */
+var MAX_SAFE_INTEGER = 9007199254740991;
+
+/**
+ * The base implementation of `_.property` without support for deep paths.
+ *
+ * @private
+ * @param {string} key The key of the property to get.
+ * @returns {Function} Returns the new function.
+ */
+function baseProperty(key) {
+  return function(object) {
+    return object == null ? undefined : object[key];
+  };
+}
+
+/**
+ * Gets the "length" property value of `object`.
+ *
+ * **Note:** This function is used to avoid a [JIT bug](https://bugs.webkit.org/show_bug.cgi?id=142792)
+ * that affects Safari on at least iOS 8.1-8.3 ARM64.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @returns {*} Returns the "length" value.
+ */
+var getLength = baseProperty('length');
+
+/**
+ * Checks if `value` is array-like.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
+ */
+function isArrayLike(value) {
+  return value != null && isLength(getLength(value));
+}
+
+/**
+ * Checks if `value` is a valid array-like index.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
+ * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
+ */
+function isIndex(value, length) {
+  value = (typeof value == 'number' || reIsUint.test(value)) ? +value : -1;
+  length = length == null ? MAX_SAFE_INTEGER : length;
+  return value > -1 && value % 1 == 0 && value < length;
+}
+
+/**
+ * Checks if `value` is a valid array-like length.
+ *
+ * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
+ */
+function isLength(value) {
+  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+}
+
+/**
+ * A fallback implementation of `Object.keys` which creates an array of the
+ * own enumerable property names of `object`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property names.
+ */
+function shimKeys(object) {
+  var props = keysIn(object),
+      propsLength = props.length,
+      length = propsLength && object.length;
+
+  var allowIndexes = !!length && isLength(length) &&
+    (isArray(object) || isArguments(object));
+
+  var index = -1,
+      result = [];
+
+  while (++index < propsLength) {
+    var key = props[index];
+    if ((allowIndexes && isIndex(key, length)) || hasOwnProperty.call(object, key)) {
+      result.push(key);
+    }
+  }
+  return result;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Creates an array of the own enumerable property names of `object`.
+ *
+ * **Note:** Non-object values are coerced to objects. See the
+ * [ES spec](http://ecma-international.org/ecma-262/6.0/#sec-object.keys)
+ * for more details.
+ *
+ * @static
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property names.
+ * @example
+ *
+ * function Foo() {
+ *   this.a = 1;
+ *   this.b = 2;
+ * }
+ *
+ * Foo.prototype.c = 3;
+ *
+ * _.keys(new Foo);
+ * // => ['a', 'b'] (iteration order is not guaranteed)
+ *
+ * _.keys('hi');
+ * // => ['0', '1']
+ */
+var keys = !nativeKeys ? shimKeys : function(object) {
+  var Ctor = object == null ? undefined : object.constructor;
+  if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
+      (typeof object != 'function' && isArrayLike(object))) {
+    return shimKeys(object);
+  }
+  return isObject(object) ? nativeKeys(object) : [];
+};
+
+/**
+ * Creates an array of the own and inherited enumerable property names of `object`.
+ *
+ * **Note:** Non-object values are coerced to objects.
+ *
+ * @static
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property names.
+ * @example
+ *
+ * function Foo() {
+ *   this.a = 1;
+ *   this.b = 2;
+ * }
+ *
+ * Foo.prototype.c = 3;
+ *
+ * _.keysIn(new Foo);
+ * // => ['a', 'b', 'c'] (iteration order is not guaranteed)
+ */
+function keysIn(object) {
+  if (object == null) {
+    return [];
+  }
+  if (!isObject(object)) {
+    object = Object(object);
+  }
+  var length = object.length;
+  length = (length && isLength(length) &&
+    (isArray(object) || isArguments(object)) && length) || 0;
+
+  var Ctor = object.constructor,
+      index = -1,
+      isProto = typeof Ctor == 'function' && Ctor.prototype === object,
+      result = Array(length),
+      skipIndexes = length > 0;
+
+  while (++index < length) {
+    result[index] = (index + '');
+  }
+  for (var key in object) {
+    if (!(skipIndexes && isIndex(key, length)) &&
+        !(key == 'constructor' && (isProto || !hasOwnProperty.call(object, key)))) {
+      result.push(key);
+    }
+  }
+  return result;
+}
+
+module.exports = keys;
+
+},{"lodash._getnative":10,"lodash.isarguments":11,"lodash.isarray":12}],7:[function(require,module,exports){
+/**
+ * lodash 3.0.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var binaryIndexBy = require('lodash._binaryindexby');
+
+/** Used as references for the maximum length and index of an array. */
+var MAX_ARRAY_LENGTH = 4294967295,
+    HALF_MAX_ARRAY_LENGTH = MAX_ARRAY_LENGTH >>> 1;
+
+/**
+ * Performs a binary search of `array` to determine the index at which `value`
+ * should be inserted into `array` in order to maintain its sort order.
+ *
+ * @private
+ * @param {Array} array The sorted array to inspect.
+ * @param {*} value The value to evaluate.
+ * @param {boolean} [retHighest] Specify returning the highest qualified index.
+ * @returns {number} Returns the index at which `value` should be inserted
+ *  into `array`.
+ */
+function binaryIndex(array, value, retHighest) {
+  var low = 0,
+      high = array ? array.length : low;
+
+  if (typeof value == 'number' && value === value && high <= HALF_MAX_ARRAY_LENGTH) {
+    while (low < high) {
+      var mid = (low + high) >>> 1,
+          computed = array[mid];
+
+      if ((retHighest ? (computed <= value) : (computed < value)) && computed !== null) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+    return high;
+  }
+  return binaryIndexBy(array, value, identity, retHighest);
+}
+
+/**
+ * This method returns the first argument provided to it.
+ *
+ * @static
+ * @memberOf _
+ * @category Utility
+ * @param {*} value Any value.
+ * @returns {*} Returns `value`.
+ * @example
+ *
+ * var object = { 'user': 'fred' };
+ *
+ * _.identity(object) === object;
+ * // => true
+ */
+function identity(value) {
+  return value;
+}
+
+module.exports = binaryIndex;
+
+},{"lodash._binaryindexby":8}],8:[function(require,module,exports){
+/**
+ * lodash 3.0.3 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeFloor = Math.floor,
+    nativeMin = Math.min;
+
+/** Used as references for the maximum length and index of an array. */
+var MAX_ARRAY_LENGTH = 4294967295,
+    MAX_ARRAY_INDEX = MAX_ARRAY_LENGTH - 1;
+
+/**
+ * This function is like `binaryIndex` except that it invokes `iteratee` for
+ * `value` and each element of `array` to compute their sort ranking. The
+ * iteratee is invoked with one argument; (value).
+ *
+ * @private
+ * @param {Array} array The sorted array to inspect.
+ * @param {*} value The value to evaluate.
+ * @param {Function} iteratee The function invoked per iteration.
+ * @param {boolean} [retHighest] Specify returning the highest qualified index.
+ * @returns {number} Returns the index at which `value` should be inserted
+ *  into `array`.
+ */
+function binaryIndexBy(array, value, iteratee, retHighest) {
+  value = iteratee(value);
+
+  var low = 0,
+      high = array ? array.length : 0,
+      valIsNaN = value !== value,
+      valIsNull = value === null,
+      valIsUndef = value === undefined;
+
+  while (low < high) {
+    var mid = nativeFloor((low + high) / 2),
+        computed = iteratee(array[mid]),
+        isDef = computed !== undefined,
+        isReflexive = computed === computed;
+
+    if (valIsNaN) {
+      var setLow = isReflexive || retHighest;
+    } else if (valIsNull) {
+      setLow = isReflexive && isDef && (retHighest || computed != null);
+    } else if (valIsUndef) {
+      setLow = isReflexive && (retHighest || isDef);
+    } else if (computed == null) {
+      setLow = false;
+    } else {
+      setLow = retHighest ? (computed <= value) : (computed < value);
+    }
+    if (setLow) {
+      low = mid + 1;
+    } else {
+      high = mid;
+    }
+  }
+  return nativeMin(high, MAX_ARRAY_INDEX);
+}
+
+module.exports = binaryIndexBy;
+
+},{}],9:[function(require,module,exports){
+/**
+ * lodash 3.0.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+
+/**
+ * A specialized version of `baseCallback` which only supports `this` binding
+ * and specifying the number of arguments to provide to `func`.
+ *
+ * @private
+ * @param {Function} func The function to bind.
+ * @param {*} thisArg The `this` binding of `func`.
+ * @param {number} [argCount] The number of arguments to provide to `func`.
+ * @returns {Function} Returns the callback.
+ */
+function bindCallback(func, thisArg, argCount) {
+  if (typeof func != 'function') {
+    return identity;
+  }
+  if (thisArg === undefined) {
+    return func;
+  }
+  switch (argCount) {
+    case 1: return function(value) {
+      return func.call(thisArg, value);
+    };
+    case 3: return function(value, index, collection) {
+      return func.call(thisArg, value, index, collection);
+    };
+    case 4: return function(accumulator, value, index, collection) {
+      return func.call(thisArg, accumulator, value, index, collection);
+    };
+    case 5: return function(value, other, key, object, source) {
+      return func.call(thisArg, value, other, key, object, source);
+    };
+  }
+  return function() {
+    return func.apply(thisArg, arguments);
+  };
+}
+
+/**
+ * This method returns the first argument provided to it.
+ *
+ * @static
+ * @memberOf _
+ * @category Utility
+ * @param {*} value Any value.
+ * @returns {*} Returns `value`.
+ * @example
+ *
+ * var object = { 'user': 'fred' };
+ *
+ * _.identity(object) === object;
+ * // => true
+ */
+function identity(value) {
+  return value;
+}
+
+module.exports = bindCallback;
+
+},{}],10:[function(require,module,exports){
+/**
+ * lodash 3.9.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+
+/** `Object#toString` result references. */
+var funcTag = '[object Function]';
+
+/** Used to detect host constructors (Safari > 5). */
+var reIsHostCtor = /^\[object .+?Constructor\]$/;
+
+/**
+ * Checks if `value` is object-like.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/** Used to resolve the decompiled source of functions. */
+var fnToString = Function.prototype.toString;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+ * of values.
+ */
+var objToString = objectProto.toString;
+
+/** Used to detect if a method is native. */
+var reIsNative = RegExp('^' +
+  fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
+);
+
+/**
+ * Gets the native function at `key` of `object`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @param {string} key The key of the method to get.
+ * @returns {*} Returns the function if it's native, else `undefined`.
+ */
+function getNative(object, key) {
+  var value = object == null ? undefined : object[key];
+  return isNative(value) ? value : undefined;
+}
+
+/**
+ * Checks if `value` is classified as a `Function` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isFunction(_);
+ * // => true
+ *
+ * _.isFunction(/abc/);
+ * // => false
+ */
+function isFunction(value) {
+  // The use of `Object#toString` avoids issues with the `typeof` operator
+  // in older versions of Chrome and Safari which return 'function' for regexes
+  // and Safari 8 equivalents which return 'object' for typed array constructors.
+  return isObject(value) && objToString.call(value) == funcTag;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Checks if `value` is a native function.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a native function, else `false`.
+ * @example
+ *
+ * _.isNative(Array.prototype.push);
+ * // => true
+ *
+ * _.isNative(_);
+ * // => false
+ */
+function isNative(value) {
+  if (value == null) {
+    return false;
+  }
+  if (isFunction(value)) {
+    return reIsNative.test(fnToString.call(value));
+  }
+  return isObjectLike(value) && reIsHostCtor.test(value);
+}
+
+module.exports = getNative;
+
+},{}],11:[function(require,module,exports){
+/**
+ * lodash 3.0.8 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modularize exports="npm" -o ./`
+ * Copyright 2012-2016 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2016 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+
+/** Used as references for various `Number` constants. */
+var MAX_SAFE_INTEGER = 9007199254740991;
+
+/** `Object#toString` result references. */
+var argsTag = '[object Arguments]',
+    funcTag = '[object Function]',
+    genTag = '[object GeneratorFunction]';
+
+/** Used for built-in method references. */
+var objectProto = Object.prototype;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+ * of values.
+ */
+var objectToString = objectProto.toString;
+
+/** Built-in value references. */
+var propertyIsEnumerable = objectProto.propertyIsEnumerable;
+
+/**
+ * The base implementation of `_.property` without support for deep paths.
+ *
+ * @private
+ * @param {string} key The key of the property to get.
+ * @returns {Function} Returns the new function.
+ */
+function baseProperty(key) {
+  return function(object) {
+    return object == null ? undefined : object[key];
+  };
+}
+
+/**
+ * Gets the "length" property value of `object`.
+ *
+ * **Note:** This function is used to avoid a [JIT bug](https://bugs.webkit.org/show_bug.cgi?id=142792)
+ * that affects Safari on at least iOS 8.1-8.3 ARM64.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @returns {*} Returns the "length" value.
+ */
+var getLength = baseProperty('length');
+
+/**
+ * Checks if `value` is likely an `arguments` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isArguments(function() { return arguments; }());
+ * // => true
+ *
+ * _.isArguments([1, 2, 3]);
+ * // => false
+ */
+function isArguments(value) {
+  // Safari 8.1 incorrectly makes `arguments.callee` enumerable in strict mode.
+  return isArrayLikeObject(value) && hasOwnProperty.call(value, 'callee') &&
+    (!propertyIsEnumerable.call(value, 'callee') || objectToString.call(value) == argsTag);
+}
+
+/**
+ * Checks if `value` is array-like. A value is considered array-like if it's
+ * not a function and has a `value.length` that's an integer greater than or
+ * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
+ * @example
+ *
+ * _.isArrayLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isArrayLike(document.body.children);
+ * // => true
+ *
+ * _.isArrayLike('abc');
+ * // => true
+ *
+ * _.isArrayLike(_.noop);
+ * // => false
+ */
+function isArrayLike(value) {
+  return value != null && isLength(getLength(value)) && !isFunction(value);
+}
+
+/**
+ * This method is like `_.isArrayLike` except that it also checks if `value`
+ * is an object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an array-like object, else `false`.
+ * @example
+ *
+ * _.isArrayLikeObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isArrayLikeObject(document.body.children);
+ * // => true
+ *
+ * _.isArrayLikeObject('abc');
+ * // => false
+ *
+ * _.isArrayLikeObject(_.noop);
+ * // => false
+ */
+function isArrayLikeObject(value) {
+  return isObjectLike(value) && isArrayLike(value);
+}
+
+/**
+ * Checks if `value` is classified as a `Function` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isFunction(_);
+ * // => true
+ *
+ * _.isFunction(/abc/);
+ * // => false
+ */
+function isFunction(value) {
+  // The use of `Object#toString` avoids issues with the `typeof` operator
+  // in Safari 8 which returns 'object' for typed array and weak map constructors,
+  // and PhantomJS 1.9 which returns 'function' for `NodeList` instances.
+  var tag = isObject(value) ? objectToString.call(value) : '';
+  return tag == funcTag || tag == genTag;
+}
+
+/**
+ * Checks if `value` is a valid array-like length.
+ *
+ * **Note:** This function is loosely based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
+ * @example
+ *
+ * _.isLength(3);
+ * // => true
+ *
+ * _.isLength(Number.MIN_VALUE);
+ * // => false
+ *
+ * _.isLength(Infinity);
+ * // => false
+ *
+ * _.isLength('3');
+ * // => false
+ */
+function isLength(value) {
+  return typeof value == 'number' &&
+    value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(_.noop);
+ * // => true
+ *
+ * _.isObject(null);
+ * // => false
+ */
+function isObject(value) {
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Checks if `value` is object-like. A value is object-like if it's not `null`
+ * and has a `typeof` result of "object".
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ * @example
+ *
+ * _.isObjectLike({});
+ * // => true
+ *
+ * _.isObjectLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isObjectLike(_.noop);
+ * // => false
+ *
+ * _.isObjectLike(null);
+ * // => false
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+module.exports = isArguments;
+
+},{}],12:[function(require,module,exports){
+/**
+ * lodash 3.0.4 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+
+/** `Object#toString` result references. */
+var arrayTag = '[object Array]',
+    funcTag = '[object Function]';
+
+/** Used to detect host constructors (Safari > 5). */
+var reIsHostCtor = /^\[object .+?Constructor\]$/;
+
+/**
+ * Checks if `value` is object-like.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+/** Used for native method references. */
+var objectProto = Object.prototype;
+
+/** Used to resolve the decompiled source of functions. */
+var fnToString = Function.prototype.toString;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+ * of values.
+ */
+var objToString = objectProto.toString;
+
+/** Used to detect if a method is native. */
+var reIsNative = RegExp('^' +
+  fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
+  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
+);
+
+/* Native method references for those with the same name as other `lodash` methods. */
+var nativeIsArray = getNative(Array, 'isArray');
+
+/**
+ * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
+ * of an array-like value.
+ */
+var MAX_SAFE_INTEGER = 9007199254740991;
+
+/**
+ * Gets the native function at `key` of `object`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @param {string} key The key of the method to get.
+ * @returns {*} Returns the function if it's native, else `undefined`.
+ */
+function getNative(object, key) {
+  var value = object == null ? undefined : object[key];
+  return isNative(value) ? value : undefined;
+}
+
+/**
+ * Checks if `value` is a valid array-like length.
+ *
+ * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
+ */
+function isLength(value) {
+  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+}
+
+/**
+ * Checks if `value` is classified as an `Array` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isArray([1, 2, 3]);
+ * // => true
+ *
+ * _.isArray(function() { return arguments; }());
+ * // => false
+ */
+var isArray = nativeIsArray || function(value) {
+  return isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag;
+};
+
+/**
+ * Checks if `value` is classified as a `Function` object.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
+ * @example
+ *
+ * _.isFunction(_);
+ * // => true
+ *
+ * _.isFunction(/abc/);
+ * // => false
+ */
+function isFunction(value) {
+  // The use of `Object#toString` avoids issues with the `typeof` operator
+  // in older versions of Chrome and Safari which return 'function' for regexes
+  // and Safari 8 equivalents which return 'object' for typed array constructors.
+  return isObject(value) && objToString.call(value) == funcTag;
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Checks if `value` is a native function.
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a native function, else `false`.
+ * @example
+ *
+ * _.isNative(Array.prototype.push);
+ * // => true
+ *
+ * _.isNative(_);
+ * // => false
+ */
+function isNative(value) {
+  if (value == null) {
+    return false;
+  }
+  if (isFunction(value)) {
+    return reIsNative.test(fnToString.call(value));
+  }
+  return isObjectLike(value) && reIsHostCtor.test(value);
+}
+
+module.exports = isArray;
+
+},{}],13:[function(require,module,exports){
+/**
+ * lodash 3.0.6 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modularize exports="npm" -o ./`
+ * Copyright jQuery Foundation and other contributors <https://jquery.org/>
+ * Released under MIT license <https://lodash.com/license>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ */
+
+/** Used as references for various `Number` constants. */
+var MAX_SAFE_INTEGER = 9007199254740991;
+
+/** `Object#toString` result references. */
+var argsTag = '[object Arguments]',
+    arrayTag = '[object Array]',
+    boolTag = '[object Boolean]',
+    dateTag = '[object Date]',
+    errorTag = '[object Error]',
+    funcTag = '[object Function]',
+    mapTag = '[object Map]',
+    numberTag = '[object Number]',
+    objectTag = '[object Object]',
+    regexpTag = '[object RegExp]',
+    setTag = '[object Set]',
+    stringTag = '[object String]',
+    weakMapTag = '[object WeakMap]';
+
+var arrayBufferTag = '[object ArrayBuffer]',
+    dataViewTag = '[object DataView]',
+    float32Tag = '[object Float32Array]',
+    float64Tag = '[object Float64Array]',
+    int8Tag = '[object Int8Array]',
+    int16Tag = '[object Int16Array]',
+    int32Tag = '[object Int32Array]',
+    uint8Tag = '[object Uint8Array]',
+    uint8ClampedTag = '[object Uint8ClampedArray]',
+    uint16Tag = '[object Uint16Array]',
+    uint32Tag = '[object Uint32Array]';
+
+/** Used to identify `toStringTag` values of typed arrays. */
+var typedArrayTags = {};
+typedArrayTags[float32Tag] = typedArrayTags[float64Tag] =
+typedArrayTags[int8Tag] = typedArrayTags[int16Tag] =
+typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] =
+typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] =
+typedArrayTags[uint32Tag] = true;
+typedArrayTags[argsTag] = typedArrayTags[arrayTag] =
+typedArrayTags[arrayBufferTag] = typedArrayTags[boolTag] =
+typedArrayTags[dataViewTag] = typedArrayTags[dateTag] =
+typedArrayTags[errorTag] = typedArrayTags[funcTag] =
+typedArrayTags[mapTag] = typedArrayTags[numberTag] =
+typedArrayTags[objectTag] = typedArrayTags[regexpTag] =
+typedArrayTags[setTag] = typedArrayTags[stringTag] =
+typedArrayTags[weakMapTag] = false;
+
+/** Used for built-in method references. */
+var objectProto = Object.prototype;
+
+/**
+ * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+ * of values.
+ */
+var objectToString = objectProto.toString;
+
+/**
+ * Checks if `value` is a valid array-like length.
+ *
+ * **Note:** This function is loosely based on
+ * [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a valid length,
+ *  else `false`.
+ * @example
+ *
+ * _.isLength(3);
+ * // => true
+ *
+ * _.isLength(Number.MIN_VALUE);
+ * // => false
+ *
+ * _.isLength(Infinity);
+ * // => false
+ *
+ * _.isLength('3');
+ * // => false
+ */
+function isLength(value) {
+  return typeof value == 'number' &&
+    value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+}
+
+/**
+ * Checks if `value` is object-like. A value is object-like if it's not `null`
+ * and has a `typeof` result of "object".
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ * @example
+ *
+ * _.isObjectLike({});
+ * // => true
+ *
+ * _.isObjectLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isObjectLike(_.noop);
+ * // => false
+ *
+ * _.isObjectLike(null);
+ * // => false
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+/**
+ * Checks if `value` is classified as a typed array.
+ *
+ * @static
+ * @memberOf _
+ * @since 3.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is correctly classified,
+ *  else `false`.
+ * @example
+ *
+ * _.isTypedArray(new Uint8Array);
+ * // => true
+ *
+ * _.isTypedArray([]);
+ * // => false
+ */
+function isTypedArray(value) {
+  return isObjectLike(value) &&
+    isLength(value.length) && !!typedArrayTags[objectToString.call(value)];
+}
+
+module.exports = isTypedArray;
+
+},{}],14:[function(require,module,exports){
+/**
+ * lodash 3.0.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var keys = require('lodash.keys');
+
+/**
+ * Converts `value` to an object if it's not one.
+ *
+ * @private
+ * @param {*} value The value to process.
+ * @returns {Object} Returns the object.
+ */
+function toObject(value) {
+  return isObject(value) ? value : Object(value);
+}
+
+/**
+ * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
+ * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(1);
+ * // => false
+ */
+function isObject(value) {
+  // Avoid a V8 JIT bug in Chrome 19-20.
+  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Creates a two dimensional array of the key-value pairs for `object`,
+ * e.g. `[[key1, value1], [key2, value2]]`.
+ *
+ * @static
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the new array of key-value pairs.
+ * @example
+ *
+ * _.pairs({ 'barney': 36, 'fred': 40 });
+ * // => [['barney', 36], ['fred', 40]] (iteration order is not guaranteed)
+ */
+function pairs(object) {
+  object = toObject(object);
+
+  var index = -1,
+      props = keys(object),
+      length = props.length,
+      result = Array(length);
+
+  while (++index < length) {
+    var key = props[index];
+    result[index] = [key, object[key]];
+  }
+  return result;
+}
+
+module.exports = pairs;
+
+},{"lodash.keys":15}],15:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"dup":6,"lodash._getnative":10,"lodash.isarguments":11,"lodash.isarray":12}],16:[function(require,module,exports){
+/**
+ * lodash 3.1.1 (Custom Build) <https://lodash.com/>
+ * Build: `lodash modern modularize exports="npm" -o ./`
+ * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <https://lodash.com/license>
+ */
+var baseCallback = require('lodash._basecallback'),
+    binaryIndex = require('lodash._binaryindex'),
+    binaryIndexBy = require('lodash._binaryindexby');
+
+/**
+ * Creates a `_.sortedIndex` or `_.sortedLastIndex` function.
+ *
+ * @private
+ * @param {boolean} [retHighest] Specify returning the highest qualified index.
+ * @returns {Function} Returns the new index function.
+ */
+function createSortedIndex(retHighest) {
+  return function(array, value, iteratee, thisArg) {
+    return iteratee == null
+      ? binaryIndex(array, value, retHighest)
+      : binaryIndexBy(array, value, baseCallback(iteratee, thisArg, 1), retHighest);
+  };
+}
+
+/**
+ * Uses a binary search to determine the lowest index at which `value` should
+ * be inserted into `array` in order to maintain its sort order. If an iteratee
+ * function is provided it is invoked for `value` and each element of `array`
+ * to compute their sort ranking. The iteratee is bound to `thisArg` and
+ * invoked with one argument; (value).
+ *
+ * If a property name is provided for `iteratee` the created `_.property`
+ * style callback returns the property value of the given element.
+ *
+ * If a value is also provided for `thisArg` the created `_.matchesProperty`
+ * style callback returns `true` for elements that have a matching property
+ * value, else `false`.
+ *
+ * If an object is provided for `iteratee` the created `_.matches` style
+ * callback returns `true` for elements that have the properties of the given
+ * object, else `false`.
+ *
+ * @static
+ * @memberOf _
+ * @category Array
+ * @param {Array} array The sorted array to inspect.
+ * @param {*} value The value to evaluate.
+ * @param {Function|Object|string} [iteratee=_.identity] The function invoked
+ *  per iteration.
+ * @param {*} [thisArg] The `this` binding of `iteratee`.
+ * @returns {number} Returns the index at which `value` should be inserted
+ *  into `array`.
+ * @example
+ *
+ * _.sortedIndex([30, 50], 40);
+ * // => 1
+ *
+ * _.sortedIndex([4, 4, 5, 5], 5);
+ * // => 2
+ *
+ * var dict = { 'data': { 'thirty': 30, 'forty': 40, 'fifty': 50 } };
+ *
+ * // using an iteratee function
+ * _.sortedIndex(['thirty', 'fifty'], 'forty', function(word) {
+ *   return this.data[word];
+ * }, dict);
+ * // => 1
+ *
+ * // using the `_.property` callback shorthand
+ * _.sortedIndex([{ 'x': 30 }, { 'x': 50 }], { 'x': 40 }, 'x');
+ * // => 1
+ */
+var sortedIndex = createSortedIndex();
+
+module.exports = sortedIndex;
+
+},{"lodash._basecallback":4,"lodash._binaryindex":7,"lodash._binaryindexby":8}],17:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -25419,13 +28189,13 @@ jStat.extend(jStat.fn, {
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],5:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 module.exports = ".range-slider {\n  position: relative;\n  height: 20px;\n}\n.range-slider input {\n  pointer-events: none;\n  position: absolute;\n  overflow: hidden;\n  left: 0;\n  top: 0;\n  width: 200px;\n  outline: none;\n  height: 18px;\n}\n.range-slider input::-webkit-slider-thumb {\n  pointer-events: all;\n  position: relative;\n  z-index: 1;\n  outline: 0;\n  border-radius: 0;\n}\n.range-slider input::-moz-range-thumb {\n  pointer-events: all;\n  position: relative;\n  z-index: 10;\n  -moz-appearance: none;\n  background: linear-gradient(to bottom, #ededed 0%, #dedede 100%);\n  width: 11px;\n}\n.range-slider input::-moz-range-track {\n  position: relative;\n  z-index: -1;\n  background-color: rgba(0, 0, 0, .15);\n  border: 0;\n}\n.range-slider input:last-of-type::-moz-range-track {\n  -moz-appearance: none;\n  background: none transparent;\n  border: 0;\n}\n";
 
-},{}],6:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 module.exports = "<div class='range-slider'>\n  <input\n    class='upper'\n    type='range'\n    min={{lowerBound}}\n    max={{upperBound}}\n    step={{step}}\n    value={{upper}}\n    style='width:{{width}}px;' />\n  <input\n    class='lower'\n    type='range'\n    min={{lowerBound}}\n    max={{upperBound}}\n    step={{step}}\n    value={{lower}}\n    style='width:{{width}}px;' />\n</div>\n";
 
-},{}],7:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 //
 //
 // A simple Ractive component for a range slider built with two
@@ -25473,7 +28243,7 @@ var RangeSlider = Ractive.extend({
 //
 module.exports = RangeSlider;
 
-},{"./range-slider.css":5,"./range-slider.hbs":6,"ractive":8}],8:[function(require,module,exports){
+},{"./range-slider.css":18,"./range-slider.hbs":19,"ractive":21}],21:[function(require,module,exports){
 /*
 	Ractive.js v0.7.3
 	Sat Apr 25 2015 13:52:38 GMT-0400 (EDT) - commit da40f81c660ba2f09c45a09a9c20fdd34ee36d80
@@ -42094,7 +44864,196 @@ module.exports = RangeSlider;
 }));
 
 
-},{}],9:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
+//
+//
+// UI Component that manages a (large) scrollable table by reusing row <div> nodes
+//  allows for rows to be different heights and dynamic sizing
+//
+// a la: https://github.com/NeXTs/Clusterize.js, https://github.com/facebook/fixed-data-table
+//
+//  |       | <- total table area, rows exist in data, but not on dom
+//  |xxxxxxx| <- buffer of rows on dom, but not visible
+//  |-------|
+//  |#######| <- visible screen area
+//  |#######|
+//  |-------|
+//  |xxxxxxx|
+//  |       |
+
+// Required params:
+//  el: container element to render to
+//  data: array of objects containing row data
+//  buildRow: called when first building table rows (return node)
+//  updateRow: called when switching row data into a dom node
+
+//
+"use strict";
+
+//
+var _sortedIndex = require('lodash.sortedindex');
+
+//
+var defaults = {
+  heightFn: function() { return 10; },
+  availableNodes: 100
+};
+
+//
+var ScrollableTable = function(opts) {
+  if(!opts.el) { throw new Error("Need to pass `el` into ScrollableTable."); }
+  if(!opts.data) { throw new Error("Need to pass `data` into ScrollableTable."); }
+  if(!opts.buildRow) { throw new Error("Need to pass `buildRow` into ScrollableTable."); }
+  if(!opts.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
+
+  // inherit from options or defaults
+  for(var key in defaults) { this[key] = defaults[key]; }
+  for(var key in opts) { this[key] = opts[key]; }
+
+  this.rowsWithNodes = []; // indices of rows w/ active dom nodes
+  this.tops = []; // css `top` values for each data row - in seperate array for faster _sortedIndex call
+  this.el.className = this.el.className + ' sts-container';
+  this.reset();
+};
+
+//
+//
+
+// Reset or init dom elements and scrolling state
+ScrollableTable.prototype.reset = function() {
+  this.yPosition = 0;
+  this.setHeights();
+
+  // clear nodes and rebuild using `buildRow`
+  while (this.el.firstChild) { this.el.remove(this.el.firstChild); }
+
+  // clear all references between data and nodes
+  for(var ndx = 0; ndx < this.data.length; ndx++) { this.data[ndx].__node = null; }
+
+  // create new nodes and position absolutely
+  this.rowsWithNodes = [];
+  var nodesToBuild = Math.min(this.availableNodes, this.data.length);
+  for(ndx = 0; ndx < nodesToBuild; ndx++) {
+    var newRow = this.buildRow(this.data[ndx]);
+    newRow.style.top = this.data[ndx].__top + 'px';
+    newRow.className = newRow.className + ' sts-row';
+    this.el.appendChild(newRow);
+    this.rowsWithNodes.push(ndx);
+    this.data[ndx].__node = newRow;
+  }
+
+  // add node to stick to bottom to preserve height
+  this.bottomEl = document.createElement('div');
+  this.bottomEl.className = 'sts-bottom-anchor';
+  this.bottomEl.style.top = this.totalHeight + 'px';
+  this.el.appendChild(this.bottomEl);
+
+  // setup scroll handling
+  this.el.addEventListener('scroll', this.updateVisibleRows.bind(this));
+};
+
+//
+//
+
+//
+ScrollableTable.prototype.updateVisibleRows = function(evt) {
+  if(this.isUpdating) { return; }
+  this.isUpdating = true;
+
+  // var start = performance.now();
+  var screenMidpoint = this.el.scrollTop + (this.el.clientHeight / 2),
+      midNdx = _sortedIndex(this.tops, screenMidpoint),
+      freeSearchNdx = 0,
+      fillStart = Math.max(0, midNdx - Math.ceil(this.availableNodes / 2)),
+      fillEnd = Math.min(this.data.length, midNdx + Math.ceil(this.availableNodes / 2));
+  if(this.lastMidNdx === midNdx) { this.isUpdating = false; return; }
+  this.lastMidNdx = midNdx;
+  for(var rowNdx = fillStart; rowNdx < fillEnd; rowNdx++) {
+    if(!this.data[rowNdx].__node) {
+      while(this.rowsWithNodes[freeSearchNdx] > fillStart &&
+            this.rowsWithNodes[freeSearchNdx] < fillEnd) { freeSearchNdx++; }
+      this.data[rowNdx].__node = this.data[this.rowsWithNodes[freeSearchNdx]].__node;
+      this.updateRow(this.data[rowNdx], this.data[rowNdx].__node);
+      this.data[rowNdx].__node.style.top = this.data[rowNdx].__top + 'px';
+      this.data[this.rowsWithNodes[freeSearchNdx]].__node = null;
+      this.rowsWithNodes[freeSearchNdx] = rowNdx;
+      freeSearchNdx++;
+    }
+  }
+  this.isUpdating = false;
+  // console.log((performance.now() - start) + ' ms');
+};
+
+//
+//
+
+// Set `top` value in data for each row
+ScrollableTable.prototype.setHeights = function() {
+  this.totalHeight = 0;
+  this.tops = [];
+  for(var ndx = 0; ndx < this.data.length; ndx++) {
+    this.data[ndx].__top = this.totalHeight;
+    this.tops.push(this.totalHeight);
+    this.totalHeight += this.heightFn(this.data[ndx]);
+  }
+  return this.totalHeight;
+};
+
+// Update data and adjust heights, rebuild nodes
+ScrollableTable.prototype.updateData = function(newData) {
+  var oldNodes = [];
+  var ndx, newNode;
+  // var start = performance.now();
+
+  if(this.isUpdating) { return; }
+  this.isUpdating = true;
+
+  // remove nodes if newData is smaller
+  // potential perf update; keep this.hiddenNodes and reuse/reattach instead of rebuilding
+  if(newData.length < this.rowsWithNodes.length) {
+    for(ndx = this.rowsWithNodes.length-1; ndx >= newData.length; ndx--) {
+      var node = this.data[this.rowsWithNodes[ndx]].__node;
+      node.parentNode.removeChild(node);
+      this.data[this.rowsWithNodes[ndx]].__node = null;
+      this.rowsWithNodes.pop();
+    }
+  }
+
+  for(ndx = 0; ndx < Math.min(this.rowsWithNodes.length, newData.length); ndx++) {
+    oldNodes.push(this.data[this.rowsWithNodes[ndx]].__node);
+    this.data[this.rowsWithNodes[ndx]].__node = null;
+    this.rowsWithNodes[ndx] = ndx;
+  }
+
+  // build new nodes if neccesary
+  if(oldNodes.length < newData.length &&
+     oldNodes.length < this.availableNodes) {
+    for(ndx = oldNodes.length; ndx < Math.min(this.availableNodes, newData.length); ndx++) {
+      newNode = this.buildRow(newData[ndx]);
+      newNode.className = newNode.className + ' sts-row';
+      this.el.appendChild(newNode);
+      oldNodes.push(newNode);
+      this.rowsWithNodes.push(ndx);
+    }
+  }
+
+  this.data = newData;
+  this.setHeights();
+  for(ndx = 0; ndx < oldNodes.length; ndx++) {
+    this.data[ndx].__node = oldNodes[ndx];
+    this.updateRow(this.data[ndx], this.data[ndx].__node);
+    this.data[ndx].__node.style.top = this.data[ndx].__top + 'px';
+  }
+  this.bottomEl.style.top = this.totalHeight + 'px';
+  this.isUpdating = false;
+  this.updateVisibleRows();
+  // console.log((performance.now() - start) + ' ms (update)');
+};
+
+//
+module.exports = ScrollableTable;
+
+},{"lodash.sortedindex":16}],23:[function(require,module,exports){
 //
 //
 //
@@ -42225,7 +45184,7 @@ var ColHeader = Ractive.extend({
 //
 module.exports = ColHeader;
 
-},{"../templates/col-header.hbs":16,"canvas-dpi-scaler":1,"d3":2,"lodash":4,"ractive":8}],10:[function(require,module,exports){
+},{"../templates/col-header.hbs":30,"canvas-dpi-scaler":1,"d3":2,"lodash":17,"ractive":21}],24:[function(require,module,exports){
 //
 //
 // Filter array of parsed datacomb rows with filter array of objects
@@ -42245,7 +45204,7 @@ module.exports = function(rows, filters) {
   });
 };
 
-},{"lodash":4}],11:[function(require,module,exports){
+},{"lodash":17}],25:[function(require,module,exports){
 //
 //
 // Pass row data through column definitions to build usable columns and rows
@@ -42257,7 +45216,6 @@ var _ = require('lodash'),
 
 // settings
 var histogramBins = 20;
-
 //
 module.exports = function(rows, columns, labelAccessor) {
   labelAccessor = labelAccessor || function(d, ndx) { return ''+ndx; };
@@ -42310,6 +45268,11 @@ module.exports = function(rows, columns, labelAccessor) {
       .map('count')
       .value() );
 
+  // scale the histogramMax so that the histogram bar does not overlap
+  // the scatterplot when both are shown
+  var histogramScaleFactor = 1.5;
+  histogramMax = histogramScaleFactor * histogramMax;
+
   //
   var value, widths, values, labels;
   var parsedRows = rows.map(function(row, ndx) {
@@ -42345,7 +45308,7 @@ module.exports = function(rows, columns, labelAccessor) {
   };
 };
 
-},{"d3":2,"jStat":3,"lodash":4}],12:[function(require,module,exports){
+},{"d3":2,"jStat":3,"lodash":17}],26:[function(require,module,exports){
 //
 //
 // Datacomb interface class
@@ -42690,7 +45653,7 @@ Datacomb.prototype.applyFilters = function(filters) {
 //
 module.exports = Datacomb;
 
-},{"./data-filter":10,"./data-parser":11,"./manager":13,"./palette":14,"lodash":4,"ractive":8,"smart-table-scroll":34}],13:[function(require,module,exports){
+},{"./data-filter":24,"./data-parser":25,"./manager":27,"./palette":28,"lodash":17,"ractive":21,"smart-table-scroll":22}],27:[function(require,module,exports){
 //
 //
 //
@@ -42770,7 +45733,7 @@ var Manager = Ractive.extend({
 
 module.exports = Manager;
 
-},{"../templates/col-filter.hbs":15,"../templates/datacomb.hbs":17,"../templates/summary-stats.hbs":18,"./col-header":9,"d3":2,"lodash":4,"ractive":8,"ractive-range-slider":7}],14:[function(require,module,exports){
+},{"../templates/col-filter.hbs":29,"../templates/datacomb.hbs":31,"../templates/summary-stats.hbs":32,"./col-header":23,"d3":2,"lodash":17,"ractive":21,"ractive-range-slider":20}],28:[function(require,module,exports){
 //
 //
 //
@@ -42802,2121 +45765,17 @@ module.exports = {
            "#CAB098"]
 };
 
-},{}],15:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = "\n{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      <input type='checkbox' checked={{filters[colNdx].toggled[.]}} /> {{ . }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <div class='filter-text'>\n    <input type='text' value={{ filters[colNdx].gt }} />\n    to\n    <input type='text' value={{ filters[colNdx].lt }} />\n  </div>\n  <RangeSlider\n    width=160\n    lowerBound={{cols[colNdx].min}}\n    upperBound={{cols[colNdx].max}}\n    lower={{filters[colNdx].gt}}\n    upper={{filters[colNdx].lt}}\n    step={{ (cols[colNdx].max / cols[colNdx].min) / 100}} />\n{{/if}}\n";
 
-},{}],16:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = "<div class='dc-col-header' style='width:{{width}}px;' {{#if isDiscrete}}discrete{{/if}}>\n  <h4>\n    {{label}}\n    <button class='col-action' on-click='sort-by-col:{{index}},false'>\n      {{#if isDiscrete || index === -1}}\n        <i class='fa fa-sort-alpha-asc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-asc'></i>\n      {{/if}}\n    </button>\n    <button class='col-action' on-click='sort-by-col:{{index}},true'>\n      {{#if isDiscrete }}\n        <i class='fa fa-sort-alpha-desc'></i>\n      {{else}}\n        <i class='fa fa-sort-amount-desc'></i>\n      {{/if}}\n    </button>\n    {{#if !isDiscrete }}\n      {{#if scatterPlotNdx === index}}\n        <button class='col-action' on-click='set(\"scatterPlotNdx\",-1)'>\n          <i class='fa fa-times-circle-o'></i>\n        </button>\n      {{else}}\n        <button class='col-action' on-click='show-scatter-plots:{{index}}'>\n          <i class='fa fa-circle-o'></i>\n        </button>\n      {{/if}}\n    {{/if}}\n  </h4>\n\n\n  <!-- filters -->\n  <div class='dc-filter' {{#if !filtersOpen }}hidden{{/if}}>\n    {{#if index === -1}}\n      <button class='dc-btn dc-warn' on-click='reset-filters'>\n        <i class='fa fa-close'></i>\n        Reset filters\n      </button>\n\n    {{elseif isDiscrete }}\n      <button on-click='set(\"filter.toggled.*\", true)' class='col-action'>All</button> / <button on-click='set(\"filter.toggled.*\", false)' class='col-action'>None</button>\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          <input type='checkbox' checked={{filter.toggled[.]}} /> {{ . }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n\n    {{else}}\n      <div class='filter-text'>\n        <input type='text' value={{ filter.gt }} />\n        to\n        <input type='text' value={{ filter.lt }} />\n      </div>\n      <RangeSlider\n        width={{ width}}\n        lowerBound={{min}}\n        upperBound={{max}}\n        lower={{filter.gt}}\n        upper={{filter.lt}}\n        step={{ (max / min) / 100}} />\n    {{/if}}\n  </div>\n\n  <!-- summary stats -->\n  <div {{#if !statsOpen }}hidden{{/if}}>\n    {{#if isDiscrete }}\n      {{#if false }}\n      <ul class='scroll-list'>\n      {{#uniqValues:valNdx}}\n        <li>\n          {{ label }}\n        </li>\n      {{/uniqValues}}\n      </ul>\n      {{/if}}\n    {{else}}\n      <ul class='stat-list'>\n        <li>Min: <b>{{ min.toFixed(2) }}</b></li>\n        <li>Max: <b>{{ max.toFixed(2) }}</b></li>\n        <li>Mean: <b>{{ mean.toFixed(2) }}</b></li>\n        <li>Med: <b>{{ median.toFixed(2) }}</b></li>\n        <li>Std Dev: <b>{{ sd.toFixed(2) }}</b></li>\n      </ul>\n    {{/if}}\n  </div>\n\n\n\n  <!-- svg, canvas elements -->\n  {{#if isDiscrete}}\n    <div class='disc-value'>{{hoverValue}}</div>\n  {{else}}\n  <canvas class='dc-col-scatter' width={{width}} height={{scatterHeight}} {{#if !scatterOpen}}hidden{{/if}}></canvas>\n    <svg class='dc-ch-axis dc-histogram' height='{{histogramsOpen ? 78 : 22}}' width='{{width}}'>\n        <!-- histograms -->\n        {{#if !isDiscrete }}\n        <g {{#if !histogramsOpen }}hidden{{/if}}>\n          {{#histogramBarData}}\n            <rect x={{x0}}\n                  y={{histogramHeight-height}}\n                  width={{x1-x0}}\n                  height={{height}}\n                  on-mouseover='hover-histogram:{{index}},{{lower}},{{upper}}'\n                  on-click='focus-histogram:{{index}},{{lower}},{{upper}}' />\n          {{/histogramBarData}}\n        </g>\n        {{/if}}\n\n        <!-- axis -->\n        <g class='ch-axis-g bottom' transform='translate(0,{{histogramsOpen ? 80 : 24}})'></g>\n        <g {{#if index !== scatterPlotNdx }}hidden{{/if}}>\n          <g class='ch-axis-g right' transform='translate(0,{{24-scatterHeight}})'></g>\n          <g class='ch-axis-g left' transform='translate({{width}},{{24-scatterHeight}})'></g>\n        </g>\n\n    </svg>\n  {{/if}}\n\n</div>\n";
 
-},{}],17:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = "<!--\nTop level template and DOM structure for Datacomb.\n-->\n\n<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css\">\n\n{{#partial discreteColumnOptions}}\n  <option value='-1'>None</option>\n  {{#discreteCols}}\n    <option value={{ndx}}>{{label}}</option>\n  {{/discreteCols}}\n{{/partial}}\n\n<div class='dc-container'>\n  <div class='dc-top-controls'>\n    <label>\n      <input type='checkbox' checked='{{focusOnHover}}'>Focus On Hover\n    </label>\n    <label>\n      <input type='checkbox' checked='{{hideUnfocused}}'>Hide Unfocused\n    </label>\n    <button class='dc-btn'\n            on-click='toggle(\"filtersOpen\")'\n            {{#if filtersOpen}}opened{{/if}} >\n      <i class='fa fa-filter'></i>\n      {{#if filtersOpen}}Hide{{else}}Show{{/if}} Filters\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"statsOpen\")'\n            {{#if statsOpen}}opened{{/if}} >\n      <i class='fa fa-list'></i>\n      {{#if statsOpen}}Hide{{else}}Show{{/if}} Summary Stats\n    </button>\n    <button class='dc-btn'\n            on-click='toggle(\"histogramsOpen\")'\n            {{#if histogramsOpen}}opened{{/if}} >\n      <i class='fa fa-bar-chart'></i>\n      {{#if histogramsOpen}}Hide{{else}}Show{{/if}} Histograms\n    </button>\n    <button class='dc-btn' on-click='focus-all'>\n      <i class='fa fa-arrows-v'></i>\n      Focus All\n    </button>\n    <button class='dc-btn' on-click='unfocus-all'>\n      <i class='fa fa-minus'></i>\n      Unfocus All\n    </button>\n\n    <label>Group By: </label>\n    <select value={{groupByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n\n    <label>Color By: </label>\n    <select value={{colorByColNdx}}>\n      {{>discreteColumnOptions}}\n    </select>\n  </div>\n\n  <ul class='dc-col-headers'>\n    <li>\n      <ColHeader label=\"Row Label\"\n        width={{ colWidth}}\n        index={{-1}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        hoverValue={{ hoverRow._rowLabel }} /></li>\n    {{#cols:colNdx}}\n      <li><ColHeader\n        width={{ colWidth}}\n        filtersOpen={{filtersOpen}}\n        statsOpen={{statsOpen}}\n        statsOpen={{statsOpen}}\n        scatterOpen={{scatterPlotNdx !== -1}}\n\n        scatterPlotNdx={{scatterPlotNdx}}\n        scatterHeight={{ colWidth }}\n        scatterData={{ scatterArrays[colNdx] }}\n\n        isDiscrete={{ type=='discrete' }}\n        min={{ cols[colNdx].min }}\n        max={{ cols[colNdx].max }}\n        label={{ label }}\n        index={{ colNdx }}\n        filter={{ filters[colNdx] }}\n        hoverValue={{ hoverRow._values[colNdx] }} /></li>\n    {{/cols}}\n  </ul>\n\n  <div class='dc-table'></div>\n</div>\n";
 
-},{}],18:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 module.exports = "{{#if type === 'discrete' }}\n  <ul class='toggle-list'>\n  {{#uniqValues:valNdx}}\n    <li>\n      {{ label }}\n    </li>\n  {{/uniqValues}}\n  </ul>\n\n{{else}}\n  <ul class='stat-list'>\n    <li>Min: {{ min.toFixed(2) }}</li>\n    <li>Max: {{ max.toFixed(2) }}</li>\n    <li>Mean: {{ mean.toFixed(2) }}</li>\n    <li>Med: {{ median.toFixed(2) }}</li>\n    <li>Std Dev: {{ sd.toFixed(2) }}</li>\n  </ul>\n{{/if}}\n";
 
-},{}],19:[function(require,module,exports){
-/**
- * lodash 3.1.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var baseCallback = require('lodash._basecallback'),
-    binaryIndex = require('lodash._binaryindex'),
-    binaryIndexBy = require('lodash._binaryindexby');
-
-/**
- * Creates a `_.sortedIndex` or `_.sortedLastIndex` function.
- *
- * @private
- * @param {boolean} [retHighest] Specify returning the highest qualified index.
- * @returns {Function} Returns the new index function.
- */
-function createSortedIndex(retHighest) {
-  return function(array, value, iteratee, thisArg) {
-    return iteratee == null
-      ? binaryIndex(array, value, retHighest)
-      : binaryIndexBy(array, value, baseCallback(iteratee, thisArg, 1), retHighest);
-  };
-}
-
-/**
- * Uses a binary search to determine the lowest index at which `value` should
- * be inserted into `array` in order to maintain its sort order. If an iteratee
- * function is provided it is invoked for `value` and each element of `array`
- * to compute their sort ranking. The iteratee is bound to `thisArg` and
- * invoked with one argument; (value).
- *
- * If a property name is provided for `iteratee` the created `_.property`
- * style callback returns the property value of the given element.
- *
- * If a value is also provided for `thisArg` the created `_.matchesProperty`
- * style callback returns `true` for elements that have a matching property
- * value, else `false`.
- *
- * If an object is provided for `iteratee` the created `_.matches` style
- * callback returns `true` for elements that have the properties of the given
- * object, else `false`.
- *
- * @static
- * @memberOf _
- * @category Array
- * @param {Array} array The sorted array to inspect.
- * @param {*} value The value to evaluate.
- * @param {Function|Object|string} [iteratee=_.identity] The function invoked
- *  per iteration.
- * @param {*} [thisArg] The `this` binding of `iteratee`.
- * @returns {number} Returns the index at which `value` should be inserted
- *  into `array`.
- * @example
- *
- * _.sortedIndex([30, 50], 40);
- * // => 1
- *
- * _.sortedIndex([4, 4, 5, 5], 5);
- * // => 2
- *
- * var dict = { 'data': { 'thirty': 30, 'forty': 40, 'fifty': 50 } };
- *
- * // using an iteratee function
- * _.sortedIndex(['thirty', 'fifty'], 'forty', function(word) {
- *   return this.data[word];
- * }, dict);
- * // => 1
- *
- * // using the `_.property` callback shorthand
- * _.sortedIndex([{ 'x': 30 }, { 'x': 50 }], { 'x': 40 }, 'x');
- * // => 1
- */
-var sortedIndex = createSortedIndex();
-
-module.exports = sortedIndex;
-
-},{"lodash._basecallback":20,"lodash._binaryindex":31,"lodash._binaryindexby":32}],20:[function(require,module,exports){
-/**
- * lodash 3.3.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var baseIsEqual = require('lodash._baseisequal'),
-    bindCallback = require('lodash._bindcallback'),
-    isArray = require('lodash.isarray'),
-    pairs = require('lodash.pairs');
-
-/** Used to match property names within property paths. */
-var reIsDeepProp = /\.|\[(?:[^[\]]*|(["'])(?:(?!\1)[^\n\\]|\\.)*?\1)\]/,
-    reIsPlainProp = /^\w*$/,
-    rePropName = /[^.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\n\\]|\\.)*?)\2)\]/g;
-
-/** Used to match backslashes in property paths. */
-var reEscapeChar = /\\(\\)?/g;
-
-/**
- * Converts `value` to a string if it's not one. An empty string is returned
- * for `null` or `undefined` values.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {string} Returns the string.
- */
-function baseToString(value) {
-  return value == null ? '' : (value + '');
-}
-
-/**
- * The base implementation of `_.callback` which supports specifying the
- * number of arguments to provide to `func`.
- *
- * @private
- * @param {*} [func=_.identity] The value to convert to a callback.
- * @param {*} [thisArg] The `this` binding of `func`.
- * @param {number} [argCount] The number of arguments to provide to `func`.
- * @returns {Function} Returns the callback.
- */
-function baseCallback(func, thisArg, argCount) {
-  var type = typeof func;
-  if (type == 'function') {
-    return thisArg === undefined
-      ? func
-      : bindCallback(func, thisArg, argCount);
-  }
-  if (func == null) {
-    return identity;
-  }
-  if (type == 'object') {
-    return baseMatches(func);
-  }
-  return thisArg === undefined
-    ? property(func)
-    : baseMatchesProperty(func, thisArg);
-}
-
-/**
- * The base implementation of `get` without support for string paths
- * and default values.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {Array} path The path of the property to get.
- * @param {string} [pathKey] The key representation of path.
- * @returns {*} Returns the resolved value.
- */
-function baseGet(object, path, pathKey) {
-  if (object == null) {
-    return;
-  }
-  if (pathKey !== undefined && pathKey in toObject(object)) {
-    path = [pathKey];
-  }
-  var index = 0,
-      length = path.length;
-
-  while (object != null && index < length) {
-    object = object[path[index++]];
-  }
-  return (index && index == length) ? object : undefined;
-}
-
-/**
- * The base implementation of `_.isMatch` without support for callback
- * shorthands and `this` binding.
- *
- * @private
- * @param {Object} object The object to inspect.
- * @param {Array} matchData The propery names, values, and compare flags to match.
- * @param {Function} [customizer] The function to customize comparing objects.
- * @returns {boolean} Returns `true` if `object` is a match, else `false`.
- */
-function baseIsMatch(object, matchData, customizer) {
-  var index = matchData.length,
-      length = index,
-      noCustomizer = !customizer;
-
-  if (object == null) {
-    return !length;
-  }
-  object = toObject(object);
-  while (index--) {
-    var data = matchData[index];
-    if ((noCustomizer && data[2])
-          ? data[1] !== object[data[0]]
-          : !(data[0] in object)
-        ) {
-      return false;
-    }
-  }
-  while (++index < length) {
-    data = matchData[index];
-    var key = data[0],
-        objValue = object[key],
-        srcValue = data[1];
-
-    if (noCustomizer && data[2]) {
-      if (objValue === undefined && !(key in object)) {
-        return false;
-      }
-    } else {
-      var result = customizer ? customizer(objValue, srcValue, key) : undefined;
-      if (!(result === undefined ? baseIsEqual(srcValue, objValue, customizer, true) : result)) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-/**
- * The base implementation of `_.matches` which does not clone `source`.
- *
- * @private
- * @param {Object} source The object of property values to match.
- * @returns {Function} Returns the new function.
- */
-function baseMatches(source) {
-  var matchData = getMatchData(source);
-  if (matchData.length == 1 && matchData[0][2]) {
-    var key = matchData[0][0],
-        value = matchData[0][1];
-
-    return function(object) {
-      if (object == null) {
-        return false;
-      }
-      return object[key] === value && (value !== undefined || (key in toObject(object)));
-    };
-  }
-  return function(object) {
-    return baseIsMatch(object, matchData);
-  };
-}
-
-/**
- * The base implementation of `_.matchesProperty` which does not clone `srcValue`.
- *
- * @private
- * @param {string} path The path of the property to get.
- * @param {*} srcValue The value to compare.
- * @returns {Function} Returns the new function.
- */
-function baseMatchesProperty(path, srcValue) {
-  var isArr = isArray(path),
-      isCommon = isKey(path) && isStrictComparable(srcValue),
-      pathKey = (path + '');
-
-  path = toPath(path);
-  return function(object) {
-    if (object == null) {
-      return false;
-    }
-    var key = pathKey;
-    object = toObject(object);
-    if ((isArr || !isCommon) && !(key in object)) {
-      object = path.length == 1 ? object : baseGet(object, baseSlice(path, 0, -1));
-      if (object == null) {
-        return false;
-      }
-      key = last(path);
-      object = toObject(object);
-    }
-    return object[key] === srcValue
-      ? (srcValue !== undefined || (key in object))
-      : baseIsEqual(srcValue, object[key], undefined, true);
-  };
-}
-
-/**
- * The base implementation of `_.property` without support for deep paths.
- *
- * @private
- * @param {string} key The key of the property to get.
- * @returns {Function} Returns the new function.
- */
-function baseProperty(key) {
-  return function(object) {
-    return object == null ? undefined : object[key];
-  };
-}
-
-/**
- * A specialized version of `baseProperty` which supports deep paths.
- *
- * @private
- * @param {Array|string} path The path of the property to get.
- * @returns {Function} Returns the new function.
- */
-function basePropertyDeep(path) {
-  var pathKey = (path + '');
-  path = toPath(path);
-  return function(object) {
-    return baseGet(object, path, pathKey);
-  };
-}
-
-/**
- * The base implementation of `_.slice` without an iteratee call guard.
- *
- * @private
- * @param {Array} array The array to slice.
- * @param {number} [start=0] The start position.
- * @param {number} [end=array.length] The end position.
- * @returns {Array} Returns the slice of `array`.
- */
-function baseSlice(array, start, end) {
-  var index = -1,
-      length = array.length;
-
-  start = start == null ? 0 : (+start || 0);
-  if (start < 0) {
-    start = -start > length ? 0 : (length + start);
-  }
-  end = (end === undefined || end > length) ? length : (+end || 0);
-  if (end < 0) {
-    end += length;
-  }
-  length = start > end ? 0 : ((end - start) >>> 0);
-  start >>>= 0;
-
-  var result = Array(length);
-  while (++index < length) {
-    result[index] = array[index + start];
-  }
-  return result;
-}
-
-/**
- * Gets the propery names, values, and compare flags of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the match data of `object`.
- */
-function getMatchData(object) {
-  var result = pairs(object),
-      length = result.length;
-
-  while (length--) {
-    result[length][2] = isStrictComparable(result[length][1]);
-  }
-  return result;
-}
-
-/**
- * Checks if `value` is a property name and not a property path.
- *
- * @private
- * @param {*} value The value to check.
- * @param {Object} [object] The object to query keys on.
- * @returns {boolean} Returns `true` if `value` is a property name, else `false`.
- */
-function isKey(value, object) {
-  var type = typeof value;
-  if ((type == 'string' && reIsPlainProp.test(value)) || type == 'number') {
-    return true;
-  }
-  if (isArray(value)) {
-    return false;
-  }
-  var result = !reIsDeepProp.test(value);
-  return result || (object != null && value in toObject(object));
-}
-
-/**
- * Checks if `value` is suitable for strict equality comparisons, i.e. `===`.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` if suitable for strict
- *  equality comparisons, else `false`.
- */
-function isStrictComparable(value) {
-  return value === value && !isObject(value);
-}
-
-/**
- * Converts `value` to an object if it's not one.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {Object} Returns the object.
- */
-function toObject(value) {
-  return isObject(value) ? value : Object(value);
-}
-
-/**
- * Converts `value` to property path array if it's not one.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {Array} Returns the property path array.
- */
-function toPath(value) {
-  if (isArray(value)) {
-    return value;
-  }
-  var result = [];
-  baseToString(value).replace(rePropName, function(match, number, quote, string) {
-    result.push(quote ? string.replace(reEscapeChar, '$1') : (number || match));
-  });
-  return result;
-}
-
-/**
- * Gets the last element of `array`.
- *
- * @static
- * @memberOf _
- * @category Array
- * @param {Array} array The array to query.
- * @returns {*} Returns the last element of `array`.
- * @example
- *
- * _.last([1, 2, 3]);
- * // => 3
- */
-function last(array) {
-  var length = array ? array.length : 0;
-  return length ? array[length - 1] : undefined;
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * This method returns the first argument provided to it.
- *
- * @static
- * @memberOf _
- * @category Utility
- * @param {*} value Any value.
- * @returns {*} Returns `value`.
- * @example
- *
- * var object = { 'user': 'fred' };
- *
- * _.identity(object) === object;
- * // => true
- */
-function identity(value) {
-  return value;
-}
-
-/**
- * Creates a function that returns the property value at `path` on a
- * given object.
- *
- * @static
- * @memberOf _
- * @category Utility
- * @param {Array|string} path The path of the property to get.
- * @returns {Function} Returns the new function.
- * @example
- *
- * var objects = [
- *   { 'a': { 'b': { 'c': 2 } } },
- *   { 'a': { 'b': { 'c': 1 } } }
- * ];
- *
- * _.map(objects, _.property('a.b.c'));
- * // => [2, 1]
- *
- * _.pluck(_.sortBy(objects, _.property(['a', 'b', 'c'])), 'a.b.c');
- * // => [1, 2]
- */
-function property(path) {
-  return isKey(path) ? baseProperty(path) : basePropertyDeep(path);
-}
-
-module.exports = baseCallback;
-
-},{"lodash._baseisequal":21,"lodash._bindcallback":26,"lodash.isarray":33,"lodash.pairs":27}],21:[function(require,module,exports){
-/**
- * lodash 3.0.7 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var isArray = require('lodash.isarray'),
-    isTypedArray = require('lodash.istypedarray'),
-    keys = require('lodash.keys');
-
-/** `Object#toString` result references. */
-var argsTag = '[object Arguments]',
-    arrayTag = '[object Array]',
-    boolTag = '[object Boolean]',
-    dateTag = '[object Date]',
-    errorTag = '[object Error]',
-    numberTag = '[object Number]',
-    objectTag = '[object Object]',
-    regexpTag = '[object RegExp]',
-    stringTag = '[object String]';
-
-/**
- * Checks if `value` is object-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
-
-/**
- * A specialized version of `_.some` for arrays without support for callback
- * shorthands and `this` binding.
- *
- * @private
- * @param {Array} array The array to iterate over.
- * @param {Function} predicate The function invoked per iteration.
- * @returns {boolean} Returns `true` if any element passes the predicate check,
- *  else `false`.
- */
-function arraySome(array, predicate) {
-  var index = -1,
-      length = array.length;
-
-  while (++index < length) {
-    if (predicate(array[index], index, array)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * The base implementation of `_.isEqual` without support for `this` binding
- * `customizer` functions.
- *
- * @private
- * @param {*} value The value to compare.
- * @param {*} other The other value to compare.
- * @param {Function} [customizer] The function to customize comparing values.
- * @param {boolean} [isLoose] Specify performing partial comparisons.
- * @param {Array} [stackA] Tracks traversed `value` objects.
- * @param {Array} [stackB] Tracks traversed `other` objects.
- * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
- */
-function baseIsEqual(value, other, customizer, isLoose, stackA, stackB) {
-  if (value === other) {
-    return true;
-  }
-  if (value == null || other == null || (!isObject(value) && !isObjectLike(other))) {
-    return value !== value && other !== other;
-  }
-  return baseIsEqualDeep(value, other, baseIsEqual, customizer, isLoose, stackA, stackB);
-}
-
-/**
- * A specialized version of `baseIsEqual` for arrays and objects which performs
- * deep comparisons and tracks traversed objects enabling objects with circular
- * references to be compared.
- *
- * @private
- * @param {Object} object The object to compare.
- * @param {Object} other The other object to compare.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Function} [customizer] The function to customize comparing objects.
- * @param {boolean} [isLoose] Specify performing partial comparisons.
- * @param {Array} [stackA=[]] Tracks traversed `value` objects.
- * @param {Array} [stackB=[]] Tracks traversed `other` objects.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
-function baseIsEqualDeep(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
-  var objIsArr = isArray(object),
-      othIsArr = isArray(other),
-      objTag = arrayTag,
-      othTag = arrayTag;
-
-  if (!objIsArr) {
-    objTag = objToString.call(object);
-    if (objTag == argsTag) {
-      objTag = objectTag;
-    } else if (objTag != objectTag) {
-      objIsArr = isTypedArray(object);
-    }
-  }
-  if (!othIsArr) {
-    othTag = objToString.call(other);
-    if (othTag == argsTag) {
-      othTag = objectTag;
-    } else if (othTag != objectTag) {
-      othIsArr = isTypedArray(other);
-    }
-  }
-  var objIsObj = objTag == objectTag,
-      othIsObj = othTag == objectTag,
-      isSameTag = objTag == othTag;
-
-  if (isSameTag && !(objIsArr || objIsObj)) {
-    return equalByTag(object, other, objTag);
-  }
-  if (!isLoose) {
-    var objIsWrapped = objIsObj && hasOwnProperty.call(object, '__wrapped__'),
-        othIsWrapped = othIsObj && hasOwnProperty.call(other, '__wrapped__');
-
-    if (objIsWrapped || othIsWrapped) {
-      return equalFunc(objIsWrapped ? object.value() : object, othIsWrapped ? other.value() : other, customizer, isLoose, stackA, stackB);
-    }
-  }
-  if (!isSameTag) {
-    return false;
-  }
-  // Assume cyclic values are equal.
-  // For more information on detecting circular references see https://es5.github.io/#JO.
-  stackA || (stackA = []);
-  stackB || (stackB = []);
-
-  var length = stackA.length;
-  while (length--) {
-    if (stackA[length] == object) {
-      return stackB[length] == other;
-    }
-  }
-  // Add `object` and `other` to the stack of traversed objects.
-  stackA.push(object);
-  stackB.push(other);
-
-  var result = (objIsArr ? equalArrays : equalObjects)(object, other, equalFunc, customizer, isLoose, stackA, stackB);
-
-  stackA.pop();
-  stackB.pop();
-
-  return result;
-}
-
-/**
- * A specialized version of `baseIsEqualDeep` for arrays with support for
- * partial deep comparisons.
- *
- * @private
- * @param {Array} array The array to compare.
- * @param {Array} other The other array to compare.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Function} [customizer] The function to customize comparing arrays.
- * @param {boolean} [isLoose] Specify performing partial comparisons.
- * @param {Array} [stackA] Tracks traversed `value` objects.
- * @param {Array} [stackB] Tracks traversed `other` objects.
- * @returns {boolean} Returns `true` if the arrays are equivalent, else `false`.
- */
-function equalArrays(array, other, equalFunc, customizer, isLoose, stackA, stackB) {
-  var index = -1,
-      arrLength = array.length,
-      othLength = other.length;
-
-  if (arrLength != othLength && !(isLoose && othLength > arrLength)) {
-    return false;
-  }
-  // Ignore non-index properties.
-  while (++index < arrLength) {
-    var arrValue = array[index],
-        othValue = other[index],
-        result = customizer ? customizer(isLoose ? othValue : arrValue, isLoose ? arrValue : othValue, index) : undefined;
-
-    if (result !== undefined) {
-      if (result) {
-        continue;
-      }
-      return false;
-    }
-    // Recursively compare arrays (susceptible to call stack limits).
-    if (isLoose) {
-      if (!arraySome(other, function(othValue) {
-            return arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB);
-          })) {
-        return false;
-      }
-    } else if (!(arrValue === othValue || equalFunc(arrValue, othValue, customizer, isLoose, stackA, stackB))) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * A specialized version of `baseIsEqualDeep` for comparing objects of
- * the same `toStringTag`.
- *
- * **Note:** This function only supports comparing values with tags of
- * `Boolean`, `Date`, `Error`, `Number`, `RegExp`, or `String`.
- *
- * @private
- * @param {Object} value The object to compare.
- * @param {Object} other The other object to compare.
- * @param {string} tag The `toStringTag` of the objects to compare.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
-function equalByTag(object, other, tag) {
-  switch (tag) {
-    case boolTag:
-    case dateTag:
-      // Coerce dates and booleans to numbers, dates to milliseconds and booleans
-      // to `1` or `0` treating invalid dates coerced to `NaN` as not equal.
-      return +object == +other;
-
-    case errorTag:
-      return object.name == other.name && object.message == other.message;
-
-    case numberTag:
-      // Treat `NaN` vs. `NaN` as equal.
-      return (object != +object)
-        ? other != +other
-        : object == +other;
-
-    case regexpTag:
-    case stringTag:
-      // Coerce regexes to strings and treat strings primitives and string
-      // objects as equal. See https://es5.github.io/#x15.10.6.4 for more details.
-      return object == (other + '');
-  }
-  return false;
-}
-
-/**
- * A specialized version of `baseIsEqualDeep` for objects with support for
- * partial deep comparisons.
- *
- * @private
- * @param {Object} object The object to compare.
- * @param {Object} other The other object to compare.
- * @param {Function} equalFunc The function to determine equivalents of values.
- * @param {Function} [customizer] The function to customize comparing values.
- * @param {boolean} [isLoose] Specify performing partial comparisons.
- * @param {Array} [stackA] Tracks traversed `value` objects.
- * @param {Array} [stackB] Tracks traversed `other` objects.
- * @returns {boolean} Returns `true` if the objects are equivalent, else `false`.
- */
-function equalObjects(object, other, equalFunc, customizer, isLoose, stackA, stackB) {
-  var objProps = keys(object),
-      objLength = objProps.length,
-      othProps = keys(other),
-      othLength = othProps.length;
-
-  if (objLength != othLength && !isLoose) {
-    return false;
-  }
-  var index = objLength;
-  while (index--) {
-    var key = objProps[index];
-    if (!(isLoose ? key in other : hasOwnProperty.call(other, key))) {
-      return false;
-    }
-  }
-  var skipCtor = isLoose;
-  while (++index < objLength) {
-    key = objProps[index];
-    var objValue = object[key],
-        othValue = other[key],
-        result = customizer ? customizer(isLoose ? othValue : objValue, isLoose? objValue : othValue, key) : undefined;
-
-    // Recursively compare objects (susceptible to call stack limits).
-    if (!(result === undefined ? equalFunc(objValue, othValue, customizer, isLoose, stackA, stackB) : result)) {
-      return false;
-    }
-    skipCtor || (skipCtor = key == 'constructor');
-  }
-  if (!skipCtor) {
-    var objCtor = object.constructor,
-        othCtor = other.constructor;
-
-    // Non `Object` object instances with different constructors are not equal.
-    if (objCtor != othCtor &&
-        ('constructor' in object && 'constructor' in other) &&
-        !(typeof objCtor == 'function' && objCtor instanceof objCtor &&
-          typeof othCtor == 'function' && othCtor instanceof othCtor)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-module.exports = baseIsEqual;
-
-},{"lodash.isarray":33,"lodash.istypedarray":22,"lodash.keys":23}],22:[function(require,module,exports){
-/**
- * lodash 3.0.2 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/** `Object#toString` result references. */
-var argsTag = '[object Arguments]',
-    arrayTag = '[object Array]',
-    boolTag = '[object Boolean]',
-    dateTag = '[object Date]',
-    errorTag = '[object Error]',
-    funcTag = '[object Function]',
-    mapTag = '[object Map]',
-    numberTag = '[object Number]',
-    objectTag = '[object Object]',
-    regexpTag = '[object RegExp]',
-    setTag = '[object Set]',
-    stringTag = '[object String]',
-    weakMapTag = '[object WeakMap]';
-
-var arrayBufferTag = '[object ArrayBuffer]',
-    float32Tag = '[object Float32Array]',
-    float64Tag = '[object Float64Array]',
-    int8Tag = '[object Int8Array]',
-    int16Tag = '[object Int16Array]',
-    int32Tag = '[object Int32Array]',
-    uint8Tag = '[object Uint8Array]',
-    uint8ClampedTag = '[object Uint8ClampedArray]',
-    uint16Tag = '[object Uint16Array]',
-    uint32Tag = '[object Uint32Array]';
-
-/** Used to identify `toStringTag` values of typed arrays. */
-var typedArrayTags = {};
-typedArrayTags[float32Tag] = typedArrayTags[float64Tag] =
-typedArrayTags[int8Tag] = typedArrayTags[int16Tag] =
-typedArrayTags[int32Tag] = typedArrayTags[uint8Tag] =
-typedArrayTags[uint8ClampedTag] = typedArrayTags[uint16Tag] =
-typedArrayTags[uint32Tag] = true;
-typedArrayTags[argsTag] = typedArrayTags[arrayTag] =
-typedArrayTags[arrayBufferTag] = typedArrayTags[boolTag] =
-typedArrayTags[dateTag] = typedArrayTags[errorTag] =
-typedArrayTags[funcTag] = typedArrayTags[mapTag] =
-typedArrayTags[numberTag] = typedArrayTags[objectTag] =
-typedArrayTags[regexpTag] = typedArrayTags[setTag] =
-typedArrayTags[stringTag] = typedArrayTags[weakMapTag] = false;
-
-/**
- * Checks if `value` is object-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/**
- * Used to resolve the [`toStringTag`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
-
-/**
- * Used as the [maximum length](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-number.max_safe_integer)
- * of an array-like value.
- */
-var MAX_SAFE_INTEGER = 9007199254740991;
-
-/**
- * Checks if `value` is a valid array-like length.
- *
- * **Note:** This function is based on [`ToLength`](https://people.mozilla.org/~jorendorff/es6-draft.html#sec-tolength).
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
- */
-function isLength(value) {
-  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-}
-
-/**
- * Checks if `value` is classified as a typed array.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isTypedArray(new Uint8Array);
- * // => true
- *
- * _.isTypedArray([]);
- * // => false
- */
-function isTypedArray(value) {
-  return isObjectLike(value) && isLength(value.length) && !!typedArrayTags[objToString.call(value)];
-}
-
-module.exports = isTypedArray;
-
-},{}],23:[function(require,module,exports){
-/**
- * lodash 3.1.2 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var getNative = require('lodash._getnative'),
-    isArguments = require('lodash.isarguments'),
-    isArray = require('lodash.isarray');
-
-/** Used to detect unsigned integer values. */
-var reIsUint = /^\d+$/;
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/* Native method references for those with the same name as other `lodash` methods. */
-var nativeKeys = getNative(Object, 'keys');
-
-/**
- * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
- * of an array-like value.
- */
-var MAX_SAFE_INTEGER = 9007199254740991;
-
-/**
- * The base implementation of `_.property` without support for deep paths.
- *
- * @private
- * @param {string} key The key of the property to get.
- * @returns {Function} Returns the new function.
- */
-function baseProperty(key) {
-  return function(object) {
-    return object == null ? undefined : object[key];
-  };
-}
-
-/**
- * Gets the "length" property value of `object`.
- *
- * **Note:** This function is used to avoid a [JIT bug](https://bugs.webkit.org/show_bug.cgi?id=142792)
- * that affects Safari on at least iOS 8.1-8.3 ARM64.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {*} Returns the "length" value.
- */
-var getLength = baseProperty('length');
-
-/**
- * Checks if `value` is array-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
- */
-function isArrayLike(value) {
-  return value != null && isLength(getLength(value));
-}
-
-/**
- * Checks if `value` is a valid array-like index.
- *
- * @private
- * @param {*} value The value to check.
- * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
- * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
- */
-function isIndex(value, length) {
-  value = (typeof value == 'number' || reIsUint.test(value)) ? +value : -1;
-  length = length == null ? MAX_SAFE_INTEGER : length;
-  return value > -1 && value % 1 == 0 && value < length;
-}
-
-/**
- * Checks if `value` is a valid array-like length.
- *
- * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
- */
-function isLength(value) {
-  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-}
-
-/**
- * A fallback implementation of `Object.keys` which creates an array of the
- * own enumerable property names of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names.
- */
-function shimKeys(object) {
-  var props = keysIn(object),
-      propsLength = props.length,
-      length = propsLength && object.length;
-
-  var allowIndexes = !!length && isLength(length) &&
-    (isArray(object) || isArguments(object));
-
-  var index = -1,
-      result = [];
-
-  while (++index < propsLength) {
-    var key = props[index];
-    if ((allowIndexes && isIndex(key, length)) || hasOwnProperty.call(object, key)) {
-      result.push(key);
-    }
-  }
-  return result;
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Creates an array of the own enumerable property names of `object`.
- *
- * **Note:** Non-object values are coerced to objects. See the
- * [ES spec](http://ecma-international.org/ecma-262/6.0/#sec-object.keys)
- * for more details.
- *
- * @static
- * @memberOf _
- * @category Object
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names.
- * @example
- *
- * function Foo() {
- *   this.a = 1;
- *   this.b = 2;
- * }
- *
- * Foo.prototype.c = 3;
- *
- * _.keys(new Foo);
- * // => ['a', 'b'] (iteration order is not guaranteed)
- *
- * _.keys('hi');
- * // => ['0', '1']
- */
-var keys = !nativeKeys ? shimKeys : function(object) {
-  var Ctor = object == null ? undefined : object.constructor;
-  if ((typeof Ctor == 'function' && Ctor.prototype === object) ||
-      (typeof object != 'function' && isArrayLike(object))) {
-    return shimKeys(object);
-  }
-  return isObject(object) ? nativeKeys(object) : [];
-};
-
-/**
- * Creates an array of the own and inherited enumerable property names of `object`.
- *
- * **Note:** Non-object values are coerced to objects.
- *
- * @static
- * @memberOf _
- * @category Object
- * @param {Object} object The object to query.
- * @returns {Array} Returns the array of property names.
- * @example
- *
- * function Foo() {
- *   this.a = 1;
- *   this.b = 2;
- * }
- *
- * Foo.prototype.c = 3;
- *
- * _.keysIn(new Foo);
- * // => ['a', 'b', 'c'] (iteration order is not guaranteed)
- */
-function keysIn(object) {
-  if (object == null) {
-    return [];
-  }
-  if (!isObject(object)) {
-    object = Object(object);
-  }
-  var length = object.length;
-  length = (length && isLength(length) &&
-    (isArray(object) || isArguments(object)) && length) || 0;
-
-  var Ctor = object.constructor,
-      index = -1,
-      isProto = typeof Ctor == 'function' && Ctor.prototype === object,
-      result = Array(length),
-      skipIndexes = length > 0;
-
-  while (++index < length) {
-    result[index] = (index + '');
-  }
-  for (var key in object) {
-    if (!(skipIndexes && isIndex(key, length)) &&
-        !(key == 'constructor' && (isProto || !hasOwnProperty.call(object, key)))) {
-      result.push(key);
-    }
-  }
-  return result;
-}
-
-module.exports = keys;
-
-},{"lodash._getnative":24,"lodash.isarguments":25,"lodash.isarray":33}],24:[function(require,module,exports){
-/**
- * lodash 3.9.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/** `Object#toString` result references. */
-var funcTag = '[object Function]';
-
-/** Used to detect host constructors (Safari > 5). */
-var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/**
- * Checks if `value` is object-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to resolve the decompiled source of functions. */
-var fnToString = Function.prototype.toString;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
-
-/** Used to detect if a method is native. */
-var reIsNative = RegExp('^' +
-  fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
-  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
-);
-
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
-function getNative(object, key) {
-  var value = object == null ? undefined : object[key];
-  return isNative(value) ? value : undefined;
-}
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
-function isFunction(value) {
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in older versions of Chrome and Safari which return 'function' for regexes
-  // and Safari 8 equivalents which return 'object' for typed array constructors.
-  return isObject(value) && objToString.call(value) == funcTag;
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Checks if `value` is a native function.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function, else `false`.
- * @example
- *
- * _.isNative(Array.prototype.push);
- * // => true
- *
- * _.isNative(_);
- * // => false
- */
-function isNative(value) {
-  if (value == null) {
-    return false;
-  }
-  if (isFunction(value)) {
-    return reIsNative.test(fnToString.call(value));
-  }
-  return isObjectLike(value) && reIsHostCtor.test(value);
-}
-
-module.exports = getNative;
-
-},{}],25:[function(require,module,exports){
-/**
- * lodash 3.0.4 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/**
- * Checks if `value` is object-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/** Native method references. */
-var propertyIsEnumerable = objectProto.propertyIsEnumerable;
-
-/**
- * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
- * of an array-like value.
- */
-var MAX_SAFE_INTEGER = 9007199254740991;
-
-/**
- * The base implementation of `_.property` without support for deep paths.
- *
- * @private
- * @param {string} key The key of the property to get.
- * @returns {Function} Returns the new function.
- */
-function baseProperty(key) {
-  return function(object) {
-    return object == null ? undefined : object[key];
-  };
-}
-
-/**
- * Gets the "length" property value of `object`.
- *
- * **Note:** This function is used to avoid a [JIT bug](https://bugs.webkit.org/show_bug.cgi?id=142792)
- * that affects Safari on at least iOS 8.1-8.3 ARM64.
- *
- * @private
- * @param {Object} object The object to query.
- * @returns {*} Returns the "length" value.
- */
-var getLength = baseProperty('length');
-
-/**
- * Checks if `value` is array-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
- */
-function isArrayLike(value) {
-  return value != null && isLength(getLength(value));
-}
-
-/**
- * Checks if `value` is a valid array-like length.
- *
- * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
- */
-function isLength(value) {
-  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-}
-
-/**
- * Checks if `value` is classified as an `arguments` object.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isArguments(function() { return arguments; }());
- * // => true
- *
- * _.isArguments([1, 2, 3]);
- * // => false
- */
-function isArguments(value) {
-  return isObjectLike(value) && isArrayLike(value) &&
-    hasOwnProperty.call(value, 'callee') && !propertyIsEnumerable.call(value, 'callee');
-}
-
-module.exports = isArguments;
-
-},{}],26:[function(require,module,exports){
-/**
- * lodash 3.0.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/**
- * A specialized version of `baseCallback` which only supports `this` binding
- * and specifying the number of arguments to provide to `func`.
- *
- * @private
- * @param {Function} func The function to bind.
- * @param {*} thisArg The `this` binding of `func`.
- * @param {number} [argCount] The number of arguments to provide to `func`.
- * @returns {Function} Returns the callback.
- */
-function bindCallback(func, thisArg, argCount) {
-  if (typeof func != 'function') {
-    return identity;
-  }
-  if (thisArg === undefined) {
-    return func;
-  }
-  switch (argCount) {
-    case 1: return function(value) {
-      return func.call(thisArg, value);
-    };
-    case 3: return function(value, index, collection) {
-      return func.call(thisArg, value, index, collection);
-    };
-    case 4: return function(accumulator, value, index, collection) {
-      return func.call(thisArg, accumulator, value, index, collection);
-    };
-    case 5: return function(value, other, key, object, source) {
-      return func.call(thisArg, value, other, key, object, source);
-    };
-  }
-  return function() {
-    return func.apply(thisArg, arguments);
-  };
-}
-
-/**
- * This method returns the first argument provided to it.
- *
- * @static
- * @memberOf _
- * @category Utility
- * @param {*} value Any value.
- * @returns {*} Returns `value`.
- * @example
- *
- * var object = { 'user': 'fred' };
- *
- * _.identity(object) === object;
- * // => true
- */
-function identity(value) {
-  return value;
-}
-
-module.exports = bindCallback;
-
-},{}],27:[function(require,module,exports){
-/**
- * lodash 3.0.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var keys = require('lodash.keys');
-
-/**
- * Converts `value` to an object if it's not one.
- *
- * @private
- * @param {*} value The value to process.
- * @returns {Object} Returns the object.
- */
-function toObject(value) {
-  return isObject(value) ? value : Object(value);
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Creates a two dimensional array of the key-value pairs for `object`,
- * e.g. `[[key1, value1], [key2, value2]]`.
- *
- * @static
- * @memberOf _
- * @category Object
- * @param {Object} object The object to query.
- * @returns {Array} Returns the new array of key-value pairs.
- * @example
- *
- * _.pairs({ 'barney': 36, 'fred': 40 });
- * // => [['barney', 36], ['fred', 40]] (iteration order is not guaranteed)
- */
-function pairs(object) {
-  object = toObject(object);
-
-  var index = -1,
-      props = keys(object),
-      length = props.length,
-      result = Array(length);
-
-  while (++index < length) {
-    var key = props[index];
-    result[index] = [key, object[key]];
-  }
-  return result;
-}
-
-module.exports = pairs;
-
-},{"lodash.keys":28}],28:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"dup":23,"lodash._getnative":29,"lodash.isarguments":30,"lodash.isarray":33}],29:[function(require,module,exports){
-arguments[4][24][0].apply(exports,arguments)
-},{"dup":24}],30:[function(require,module,exports){
-arguments[4][25][0].apply(exports,arguments)
-},{"dup":25}],31:[function(require,module,exports){
-/**
- * lodash 3.0.1 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-var binaryIndexBy = require('lodash._binaryindexby');
-
-/** Used as references for the maximum length and index of an array. */
-var MAX_ARRAY_LENGTH = 4294967295,
-    HALF_MAX_ARRAY_LENGTH = MAX_ARRAY_LENGTH >>> 1;
-
-/**
- * Performs a binary search of `array` to determine the index at which `value`
- * should be inserted into `array` in order to maintain its sort order.
- *
- * @private
- * @param {Array} array The sorted array to inspect.
- * @param {*} value The value to evaluate.
- * @param {boolean} [retHighest] Specify returning the highest qualified index.
- * @returns {number} Returns the index at which `value` should be inserted
- *  into `array`.
- */
-function binaryIndex(array, value, retHighest) {
-  var low = 0,
-      high = array ? array.length : low;
-
-  if (typeof value == 'number' && value === value && high <= HALF_MAX_ARRAY_LENGTH) {
-    while (low < high) {
-      var mid = (low + high) >>> 1,
-          computed = array[mid];
-
-      if ((retHighest ? (computed <= value) : (computed < value)) && computed !== null) {
-        low = mid + 1;
-      } else {
-        high = mid;
-      }
-    }
-    return high;
-  }
-  return binaryIndexBy(array, value, identity, retHighest);
-}
-
-/**
- * This method returns the first argument provided to it.
- *
- * @static
- * @memberOf _
- * @category Utility
- * @param {*} value Any value.
- * @returns {*} Returns `value`.
- * @example
- *
- * var object = { 'user': 'fred' };
- *
- * _.identity(object) === object;
- * // => true
- */
-function identity(value) {
-  return value;
-}
-
-module.exports = binaryIndex;
-
-},{"lodash._binaryindexby":32}],32:[function(require,module,exports){
-/**
- * lodash 3.0.3 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/* Native method references for those with the same name as other `lodash` methods. */
-var nativeFloor = Math.floor,
-    nativeMin = Math.min;
-
-/** Used as references for the maximum length and index of an array. */
-var MAX_ARRAY_LENGTH = 4294967295,
-    MAX_ARRAY_INDEX = MAX_ARRAY_LENGTH - 1;
-
-/**
- * This function is like `binaryIndex` except that it invokes `iteratee` for
- * `value` and each element of `array` to compute their sort ranking. The
- * iteratee is invoked with one argument; (value).
- *
- * @private
- * @param {Array} array The sorted array to inspect.
- * @param {*} value The value to evaluate.
- * @param {Function} iteratee The function invoked per iteration.
- * @param {boolean} [retHighest] Specify returning the highest qualified index.
- * @returns {number} Returns the index at which `value` should be inserted
- *  into `array`.
- */
-function binaryIndexBy(array, value, iteratee, retHighest) {
-  value = iteratee(value);
-
-  var low = 0,
-      high = array ? array.length : 0,
-      valIsNaN = value !== value,
-      valIsNull = value === null,
-      valIsUndef = value === undefined;
-
-  while (low < high) {
-    var mid = nativeFloor((low + high) / 2),
-        computed = iteratee(array[mid]),
-        isDef = computed !== undefined,
-        isReflexive = computed === computed;
-
-    if (valIsNaN) {
-      var setLow = isReflexive || retHighest;
-    } else if (valIsNull) {
-      setLow = isReflexive && isDef && (retHighest || computed != null);
-    } else if (valIsUndef) {
-      setLow = isReflexive && (retHighest || isDef);
-    } else if (computed == null) {
-      setLow = false;
-    } else {
-      setLow = retHighest ? (computed <= value) : (computed < value);
-    }
-    if (setLow) {
-      low = mid + 1;
-    } else {
-      high = mid;
-    }
-  }
-  return nativeMin(high, MAX_ARRAY_INDEX);
-}
-
-module.exports = binaryIndexBy;
-
-},{}],33:[function(require,module,exports){
-/**
- * lodash 3.0.4 (Custom Build) <https://lodash.com/>
- * Build: `lodash modern modularize exports="npm" -o ./`
- * Copyright 2012-2015 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <https://lodash.com/license>
- */
-
-/** `Object#toString` result references. */
-var arrayTag = '[object Array]',
-    funcTag = '[object Function]';
-
-/** Used to detect host constructors (Safari > 5). */
-var reIsHostCtor = /^\[object .+?Constructor\]$/;
-
-/**
- * Checks if `value` is object-like.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
- */
-function isObjectLike(value) {
-  return !!value && typeof value == 'object';
-}
-
-/** Used for native method references. */
-var objectProto = Object.prototype;
-
-/** Used to resolve the decompiled source of functions. */
-var fnToString = Function.prototype.toString;
-
-/** Used to check objects for own properties. */
-var hasOwnProperty = objectProto.hasOwnProperty;
-
-/**
- * Used to resolve the [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
- * of values.
- */
-var objToString = objectProto.toString;
-
-/** Used to detect if a method is native. */
-var reIsNative = RegExp('^' +
-  fnToString.call(hasOwnProperty).replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')
-  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
-);
-
-/* Native method references for those with the same name as other `lodash` methods. */
-var nativeIsArray = getNative(Array, 'isArray');
-
-/**
- * Used as the [maximum length](http://ecma-international.org/ecma-262/6.0/#sec-number.max_safe_integer)
- * of an array-like value.
- */
-var MAX_SAFE_INTEGER = 9007199254740991;
-
-/**
- * Gets the native function at `key` of `object`.
- *
- * @private
- * @param {Object} object The object to query.
- * @param {string} key The key of the method to get.
- * @returns {*} Returns the function if it's native, else `undefined`.
- */
-function getNative(object, key) {
-  var value = object == null ? undefined : object[key];
-  return isNative(value) ? value : undefined;
-}
-
-/**
- * Checks if `value` is a valid array-like length.
- *
- * **Note:** This function is based on [`ToLength`](http://ecma-international.org/ecma-262/6.0/#sec-tolength).
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
- */
-function isLength(value) {
-  return typeof value == 'number' && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
-}
-
-/**
- * Checks if `value` is classified as an `Array` object.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isArray([1, 2, 3]);
- * // => true
- *
- * _.isArray(function() { return arguments; }());
- * // => false
- */
-var isArray = nativeIsArray || function(value) {
-  return isObjectLike(value) && isLength(value.length) && objToString.call(value) == arrayTag;
-};
-
-/**
- * Checks if `value` is classified as a `Function` object.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is correctly classified, else `false`.
- * @example
- *
- * _.isFunction(_);
- * // => true
- *
- * _.isFunction(/abc/);
- * // => false
- */
-function isFunction(value) {
-  // The use of `Object#toString` avoids issues with the `typeof` operator
-  // in older versions of Chrome and Safari which return 'function' for regexes
-  // and Safari 8 equivalents which return 'object' for typed array constructors.
-  return isObject(value) && objToString.call(value) == funcTag;
-}
-
-/**
- * Checks if `value` is the [language type](https://es5.github.io/#x8) of `Object`.
- * (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is an object, else `false`.
- * @example
- *
- * _.isObject({});
- * // => true
- *
- * _.isObject([1, 2, 3]);
- * // => true
- *
- * _.isObject(1);
- * // => false
- */
-function isObject(value) {
-  // Avoid a V8 JIT bug in Chrome 19-20.
-  // See https://code.google.com/p/v8/issues/detail?id=2291 for more details.
-  var type = typeof value;
-  return !!value && (type == 'object' || type == 'function');
-}
-
-/**
- * Checks if `value` is a native function.
- *
- * @static
- * @memberOf _
- * @category Lang
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if `value` is a native function, else `false`.
- * @example
- *
- * _.isNative(Array.prototype.push);
- * // => true
- *
- * _.isNative(_);
- * // => false
- */
-function isNative(value) {
-  if (value == null) {
-    return false;
-  }
-  if (isFunction(value)) {
-    return reIsNative.test(fnToString.call(value));
-  }
-  return isObjectLike(value) && reIsHostCtor.test(value);
-}
-
-module.exports = isArray;
-
-},{}],34:[function(require,module,exports){
-//
-//
-// UI Component that manages a (large) scrollable table by reusing row <div> nodes
-//  allows for rows to be different heights and dynamic sizing
-//
-// a la: https://github.com/NeXTs/Clusterize.js, https://github.com/facebook/fixed-data-table
-//
-//  |       | <- total table area, rows exist in data, but not on dom
-//  |xxxxxxx| <- buffer of rows on dom, but not visible
-//  |-------|
-//  |#######| <- visible screen area
-//  |#######|
-//  |-------|
-//  |xxxxxxx|
-//  |       |
-
-// Required params:
-//  el: container element to render to
-//  data: array of objects containing row data
-//  buildRow: called when first building table rows (return node)
-//  updateRow: called when switching row data into a dom node
-
-//
-"use strict";
-
-//
-var _sortedIndex = require('lodash.sortedindex');
-
-//
-var defaults = {
-  heightFn: function() { return 10; },
-  availableNodes: 100
-};
-
-//
-var ScrollableTable = function(opts) {
-  if(!opts.el) { throw new Error("Need to pass `el` into ScrollableTable."); }
-  if(!opts.data) { throw new Error("Need to pass `data` into ScrollableTable."); }
-  if(!opts.buildRow) { throw new Error("Need to pass `buildRow` into ScrollableTable."); }
-  if(!opts.updateRow) { throw new Error("Need to pass `updateRow` into ScrollableTable."); }
-
-  // inherit from options or defaults
-  for(var key in defaults) { this[key] = defaults[key]; }
-  for(var key in opts) { this[key] = opts[key]; }
-
-  this.rowsWithNodes = []; // indices of rows w/ active dom nodes
-  this.tops = []; // css `top` values for each data row - in seperate array for faster _sortedIndex call
-  this.el.className = this.el.className + ' sts-container';
-  this.reset();
-};
-
-//
-//
-
-// Reset or init dom elements and scrolling state
-ScrollableTable.prototype.reset = function() {
-  this.yPosition = 0;
-  this.setHeights();
-
-  // clear nodes and rebuild using `buildRow`
-  while (this.el.firstChild) { this.el.remove(this.el.firstChild); }
-
-  // clear all references between data and nodes
-  for(var ndx = 0; ndx < this.data.length; ndx++) { this.data[ndx].__node = null; }
-
-  // create new nodes and position absolutely
-  this.rowsWithNodes = [];
-  var nodesToBuild = Math.min(this.availableNodes, this.data.length);
-  for(ndx = 0; ndx < nodesToBuild; ndx++) {
-    var newRow = this.buildRow(this.data[ndx]);
-    newRow.style.top = this.data[ndx].__top + 'px';
-    newRow.className = newRow.className + ' sts-row';
-    this.el.appendChild(newRow);
-    this.rowsWithNodes.push(ndx);
-    this.data[ndx].__node = newRow;
-  }
-
-  // add node to stick to bottom to preserve height
-  this.bottomEl = document.createElement('div');
-  this.bottomEl.className = 'sts-bottom-anchor';
-  this.bottomEl.style.top = this.totalHeight + 'px';
-  this.el.appendChild(this.bottomEl);
-
-  // setup scroll handling
-  this.el.addEventListener('scroll', this.updateVisibleRows.bind(this));
-};
-
-//
-//
-
-//
-ScrollableTable.prototype.updateVisibleRows = function(evt) {
-  if(this.isUpdating) { return; }
-  this.isUpdating = true;
-
-  // var start = performance.now();
-  var screenMidpoint = this.el.scrollTop + (this.el.clientHeight / 2),
-      midNdx = _sortedIndex(this.tops, screenMidpoint),
-      freeSearchNdx = 0,
-      fillStart = Math.max(0, midNdx - Math.ceil(this.availableNodes / 2)),
-      fillEnd = Math.min(this.data.length, midNdx + Math.ceil(this.availableNodes / 2));
-  if(this.lastMidNdx === midNdx) { this.isUpdating = false; return; }
-  this.lastMidNdx = midNdx;
-  for(var rowNdx = fillStart; rowNdx < fillEnd; rowNdx++) {
-    if(!this.data[rowNdx].__node) {
-      while(this.rowsWithNodes[freeSearchNdx] > fillStart &&
-            this.rowsWithNodes[freeSearchNdx] < fillEnd) { freeSearchNdx++; }
-      this.data[rowNdx].__node = this.data[this.rowsWithNodes[freeSearchNdx]].__node;
-      this.updateRow(this.data[rowNdx], this.data[rowNdx].__node);
-      this.data[rowNdx].__node.style.top = this.data[rowNdx].__top + 'px';
-      this.data[this.rowsWithNodes[freeSearchNdx]].__node = null;
-      this.rowsWithNodes[freeSearchNdx] = rowNdx;
-      freeSearchNdx++;
-    }
-  }
-  this.isUpdating = false;
-  // console.log((performance.now() - start) + ' ms');
-};
-
-//
-//
-
-// Set `top` value in data for each row
-ScrollableTable.prototype.setHeights = function() {
-  this.totalHeight = 0;
-  this.tops = [];
-  for(var ndx = 0; ndx < this.data.length; ndx++) {
-    this.data[ndx].__top = this.totalHeight;
-    this.tops.push(this.totalHeight);
-    this.totalHeight += this.heightFn(this.data[ndx]);
-  }
-  return this.totalHeight;
-};
-
-// Update data and adjust heights, rebuild nodes
-ScrollableTable.prototype.updateData = function(newData) {
-  var oldNodes = [];
-  var ndx, newNode;
-  // var start = performance.now();
-
-  if(this.isUpdating) { return; }
-  this.isUpdating = true;
-
-  // remove nodes if newData is smaller
-  // potential perf update; keep this.hiddenNodes and reuse/reattach instead of rebuilding
-  if(newData.length < this.rowsWithNodes.length) {
-    for(ndx = this.rowsWithNodes.length-1; ndx >= newData.length; ndx--) {
-      var node = this.data[this.rowsWithNodes[ndx]].__node;
-      node.parentNode.removeChild(node);
-      this.data[this.rowsWithNodes[ndx]].__node = null;
-      this.rowsWithNodes.pop();
-    }
-  }
-
-  for(ndx = 0; ndx < Math.min(this.rowsWithNodes.length, newData.length); ndx++) {
-    oldNodes.push(this.data[this.rowsWithNodes[ndx]].__node);
-    this.data[this.rowsWithNodes[ndx]].__node = null;
-    this.rowsWithNodes[ndx] = ndx;
-  }
-
-  // build new nodes if neccesary
-  if(oldNodes.length < newData.length &&
-     oldNodes.length < this.availableNodes) {
-    for(ndx = oldNodes.length; ndx < Math.min(this.availableNodes, newData.length); ndx++) {
-      newNode = this.buildRow(newData[ndx]);
-      newNode.className = newNode.className + ' sts-row';
-      this.el.appendChild(newNode);
-      oldNodes.push(newNode);
-      this.rowsWithNodes.push(ndx);
-    }
-  }
-
-  this.data = newData;
-  this.setHeights();
-  for(ndx = 0; ndx < oldNodes.length; ndx++) {
-    this.data[ndx].__node = oldNodes[ndx];
-    this.updateRow(this.data[ndx], this.data[ndx].__node);
-    this.data[ndx].__node.style.top = this.data[ndx].__top + 'px';
-  }
-  this.bottomEl.style.top = this.totalHeight + 'px';
-  this.isUpdating = false;
-  this.updateVisibleRows();
-  // console.log((performance.now() - start) + ' ms (update)');
-};
-
-//
-module.exports = ScrollableTable;
-
-},{"lodash.sortedindex":19}]},{},[12])(12)
+},{}]},{},[26])(26)
 });
