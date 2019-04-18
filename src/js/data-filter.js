@@ -9,7 +9,7 @@ var _ = require('lodash');
 //
 module.exports = function(rows, filters) {
   return rows.filter(function(row) {
-    return _.all(filters, function(filter, colNdx) {
+    return _.every(filters, function(filter, colNdx) {
       return filter.toggled ?
         (filter.toggled[row._values[colNdx]]) :
         (row._values[colNdx] >= filter.gt && row._values[colNdx] <= filter.lt);

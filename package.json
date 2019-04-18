@@ -5,7 +5,7 @@
   "main": "js/datacomb.js",
   "scripts": {
     "test": "npm run build && mocha test/*-test.js",
-    "serve": "./node_modules/serve/bin/serve -p 5050",
+    "serve": "node ./node_modules/serve/bin/serve.js -p 5050",
     "build": "node ./node_modules/node-sass/bin/node-sass src/css -o dist/css && node ./node_modules/browserify/bin/cmd.js src/js/datacomb.js -o dist/datacomb.js -s Datacomb -t [stringify --extensions .css --extensions .hbs] && echo 'Done building.'"
   },
   "repository": {
@@ -29,15 +29,15 @@
     "browserify": "^11.0.1",
     "canvas-dpi-scaler": "0.0.3",
     "chai": "^3.2.0",
-    "d3": "^3.5.6",
+    "d3": "^3.5.17",
     "jStat": "^1.4.1",
-    "lodash": "^3.10.1",
+    "lodash": "^4.17.11",
     "mocha": "^2.2.5",
     "node-sass": "^3.2.0",
     "postcss-cli": "^2.1.0",
     "ractive": "^0.7.3",
     "ractive-range-slider": "0.1.2",
-    "serve": "^1.4.0",
+    "serve": "^11.0.0",
     "sinon": "^1.15.4",
     "sinon-chai": "^2.8.0",
     "smart-table-scroll": "0.2.0",

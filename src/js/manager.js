@@ -47,7 +47,7 @@ var Manager = Ractive.extend({
   //
   computed: {
     discreteCols: function() {
-      return _.where(this.get('cols'), { type: 'discrete' });
+      return _.filter(this.get('cols'), { type: 'discrete' });
     }
   },
 
